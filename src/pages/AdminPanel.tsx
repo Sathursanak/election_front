@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
 import { Party, DistrictVote } from "../types";
+import { Edit2, Trash2 } from "lucide-react";
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"parties" | "votes">("parties");
@@ -400,15 +401,17 @@ const ManageParties: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleEdit(party)}
-                        className="text-purple-600 hover:text-purple-900 mr-3"
+                        className="p-2 text-purple-600 hover:text-purple-900 mr-2"
+                        title="Edit"
                       >
-                        Edit
+                        <Edit2 size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(party)}
-                        className="text-red-600 hover:text-red-900"
+                        className="p-2 text-red-600 hover:text-red-900"
+                        title="Delete"
                       >
-                        Delete
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>
@@ -594,15 +597,17 @@ const ManageVotes: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => handleEdit(district)}
-                      className="text-purple-600 hover:text-purple-900 mr-3"
+                      className="p-2 text-purple-600 hover:text-purple-900 mr-2"
+                      title="Edit"
                     >
-                      Edit
+                      <Edit2 size={18} />
                     </button>
                     <button
                       onClick={() => handleDelete(district.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="p-2 text-red-600 hover:text-red-900"
+                      title="Delete"
                     >
-                      Delete
+                      <Trash2 size={18} />
                     </button>
                   </td>
                 </tr>

@@ -27,9 +27,6 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400 text-sm">
           <p>© 2025 Election Commission of Sri Lanka. All rights reserved.</p>
-          <p className="mt-2">
-            Current Date: May 18, 2025 | Time: 09:46 AM +0530
-          </p>
         </div>
       </div>
     </footer>
