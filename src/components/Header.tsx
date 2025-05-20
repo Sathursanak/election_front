@@ -19,7 +19,7 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-purple-950 text-white shadow-md z-50">
+    <header className="fixed top-0 left-0 w-full bg-teal-950 text-white shadow-md z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <Link
@@ -65,7 +65,7 @@ const Header: React.FC = () => {
       {/* Mobile Menu */}
       <div
         className={`
-        fixed inset-y-0 right-0 z-50 w-64 bg-purple-950 shadow-lg transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 right-0 z-50 w-64 bg-teal-950 shadow-lg transform transition-transform duration-300 ease-in-out
         ${isMenuOpen ? "translate-x-0" : "translate-x-full"}
       `}
       >
@@ -126,7 +126,7 @@ const Header: React.FC = () => {
       {/* Overlay */}
       {isMenuOpen && (
         <div
-          className="fixed inset-0 bg-purple bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-teal bg-opacity-50 z-40 md:hidden"
           onClick={closeMenu}
         ></div>
       )}

@@ -50,7 +50,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
       return (
         <div key={province.id} className="mb-2">
           <button
-            className="flex items-center w-full text-left px-3 py-2 bg-purple-900 text-white rounded-md hover:bg-purple-800 transition"
+            className="flex items-center w-full text-left px-3 py-2 bg-teal-900 text-white rounded-md hover:bg-teal-800 transition"
             onClick={() => toggleProvince(province.id)}
           >
             {expandedProvinces[province.id] ? (
@@ -68,7 +68,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
                   key={district.id}
                   className={`w-full text-left px-3 py-2 rounded-md transition ${
                     selectedDistrictId === district.id
-                      ? "bg-purple-100 text-purple-800 font-semibold"
+                      ? "bg-teal-100 text-teal-800 font-semibold"
                       : "hover:bg-gray-100"
                   }`}
                   onClick={() => handleDistrictSelect(district.id)}
@@ -87,7 +87,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
     <>
       {/* Mobile Menu Button */}
       <button
-        className="md:hidden fixed top-4 left-4 z-40 bg-purple-800 text-white p-2 rounded-md shadow-lg"
+        className="md:hidden fixed top-4 left-4 z-40 bg-teal-800 text-white p-2 rounded-md shadow-lg"
         onClick={toggleMobileNav}
         aria-label="Toggle districts menu"
       >
@@ -116,7 +116,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
         </div>
 
         <div className="p-4">
-          <h2 className="font-bold text-lg text-purple-800 mb-4 hidden md:block">
+          <h2 className="font-bold text-lg text-teal-800 mb-4 hidden md:block">
             Electoral Districts
           </h2>
 
@@ -127,7 +127,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
               placeholder="Search districts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,7 +141,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
       {/* Mobile Overlay */}
       {isMobileNavOpen && (
         <div
-          className="fixed inset-0 bg-purple bg-opacity-50 z-20 md:hidden"
+          className="fixed inset-0 bg-teal bg-opacity-50 z-20 md:hidden"
           onClick={toggleMobileNav}
         ></div>
       )}

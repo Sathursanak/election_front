@@ -8,7 +8,7 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-center text-purple-800 mb-8">
+      <h1 className="text-2xl md:text-3xl font-bold text-center text-teal-800 mb-8">
         Admin Panel
       </h1>
 
@@ -17,7 +17,7 @@ const AdminPanel: React.FC = () => {
         <button
           className={`px-4 py-2 font-medium text-sm focus:outline-none ${
             activeTab === "parties"
-              ? "text-purple-600 border-b-2 border-purple-600"
+              ? "text-teal-600 border-b-2 border-teal-600"
               : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("parties")}
@@ -27,7 +27,7 @@ const AdminPanel: React.FC = () => {
         <button
           className={`px-4 py-2 font-medium text-sm focus:outline-none ${
             activeTab === "votes"
-              ? "text-purple-600 border-b-2 border-purple-600"
+              ? "text-teal-600 border-b-2 border-teal-600"
               : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("votes")}
@@ -236,7 +236,7 @@ const ManageParties: React.FC = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 required
               />
             </div>
@@ -255,7 +255,7 @@ const ManageParties: React.FC = () => {
                 value={formData.votes}
                 onChange={handleChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 placeholder="Enter vote count"
               />
             </div>
@@ -274,7 +274,7 @@ const ManageParties: React.FC = () => {
                   name="logoData"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 />
                 {formData.logoData && (
                   <img
@@ -298,7 +298,7 @@ const ManageParties: React.FC = () => {
                 name="districtId"
                 value={formData.districtId}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
                 required
               >
                 <option value="">Select District</option>
@@ -314,7 +314,7 @@ const ManageParties: React.FC = () => {
           <div className="flex space-x-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50"
             >
               {formData.id ? "Update Party" : "Add Party"}
             </button>
@@ -401,7 +401,7 @@ const ManageParties: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleEdit(party)}
-                        className="p-2 text-purple-600 hover:text-purple-900 mr-2"
+                        className="p-2 text-teal-600 hover:text-teal-900 mr-2"
                         title="Edit"
                       >
                         <Edit2 size={18} />
@@ -424,7 +424,7 @@ const ManageParties: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete
@@ -597,7 +597,7 @@ const ManageVotes: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => handleEdit(district)}
-                      className="p-2 text-purple-600 hover:text-purple-900 mr-2"
+                      className="p-2 text-teal-600 hover:text-teal-900 mr-2"
                       title="Edit"
                     >
                       <Edit2 size={18} />
@@ -619,7 +619,7 @@ const ManageVotes: React.FC = () => {
 
       {/* Edit Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Edit District Votes
@@ -691,7 +691,7 @@ const ManageVotes: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
                 >
                   Save
                 </button>
@@ -703,7 +703,7 @@ const ManageVotes: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete

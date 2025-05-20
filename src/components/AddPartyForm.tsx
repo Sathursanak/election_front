@@ -88,7 +88,7 @@ const AddPartyForm: React.FC = () => {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
             required
           />
         </div>
@@ -106,7 +106,7 @@ const AddPartyForm: React.FC = () => {
             name="logoFile"
             accept="image/*"
             onChange={handleFileChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
             required
           />
           {formData.logoData && (
@@ -130,7 +130,7 @@ const AddPartyForm: React.FC = () => {
             name="districtId"
             value={formData.districtId}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
             required
           >
             <option value="">Select a district</option>
@@ -159,14 +159,14 @@ const AddPartyForm: React.FC = () => {
             onChange={handleChange}
             min="0"
             placeholder="Enter vote count"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500"
             required
           />
         </div>
 
         <button
           type="submit"
-          className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+          className="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
         >
           Add Party
         </button>

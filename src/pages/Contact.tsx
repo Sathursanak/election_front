@@ -27,7 +27,7 @@ const Contact: React.FC = () => {
                 <input
                   type="text"
                   id="name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 bg-gray-100"
                   disabled
                 />
               </div>
@@ -42,7 +42,7 @@ const Contact: React.FC = () => {
                 <input
                   type="email"
                   id="email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 bg-gray-100"
                   disabled
                 />
               </div>
@@ -57,7 +57,7 @@ const Contact: React.FC = () => {
                 <textarea
                   id="message"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 bg-gray-100"
                   disabled
                 ></textarea>
               </div>
@@ -85,7 +85,7 @@ const Contact: React.FC = () => {
 
             <div className="space-y-6">
               <div className="flex items-start">
-                <MapPin className="h-5 w-5 text-purple-600 mt-1 mr-3" />
+                <MapPin className="h-5 w-5 text-teal-600 mt-1 mr-3" />
                 <div>
                   <h3 className="font-medium text-gray-800">Address</h3>
                   <p className="text-gray-600">
@@ -101,7 +101,7 @@ const Contact: React.FC = () => {
               </div>
 
               <div className="flex items-start">
-                <Phone className="h-5 w-5 text-purple-600 mt-1 mr-3" />
+                <Phone className="h-5 w-5 text-teal-600 mt-1 mr-3" />
                 <div>
                   <h3 className="font-medium text-gray-800">Phone</h3>
                   <p className="text-gray-600">
@@ -113,7 +113,7 @@ const Contact: React.FC = () => {
               </div>
 
               <div className="flex items-start">
-                <Mail className="h-5 w-5 text-purple-600 mt-1 mr-3" />
+                <Mail className="h-5 w-5 text-teal-600 mt-1 mr-3" />
                 <div>
                   <h3 className="font-medium text-gray-800">Email</h3>
                   <p className="text-gray-600">

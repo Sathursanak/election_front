@@ -244,7 +244,7 @@ const AdminPanel: React.FC = () => {
 
       {/* Edit Party Modal */}
       {editingParty && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Edit Party
@@ -329,7 +329,7 @@ const AdminPanel: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Delete Party

@@ -8,19 +8,19 @@ const Home: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-purple-900 text-white py-16 md:py-24">
+      <section className="relative bg-teal-900 text-white py-16 md:py-24">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1550337/pexels-photo-1550337.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')] bg-cover bg-center opacity-20"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
               Sri Lanka Parliamentary Election 2025 Results
             </h1>
-            <p className="text-lg md:text-xl text-purple-100 mb-8">
+            <p className="text-lg md:text-xl text-teal-100 mb-8">
               Vote counts and seat allocations by district
             </p>
             <Link
               to="/results"
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
             >
               View Results
             </Link>
@@ -38,7 +38,7 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Total Votes Card */}
             <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-              <h3 className="text-xl font-semibold mb-2 text-purple-800">
+              <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Votes
               </h3>
               <p className="text-3xl font-bold text-gray-800">
@@ -51,7 +51,7 @@ const Home: React.FC = () => {
 
             {/* Total Seats Card */}
             <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-              <h3 className="text-xl font-semibold mb-2 text-purple-800">
+              <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Seats
               </h3>
               <p className="text-3xl font-bold text-gray-800">
@@ -62,7 +62,7 @@ const Home: React.FC = () => {
 
             {/* Participating Parties Card */}
             <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-              <h3 className="text-xl font-semibold mb-2 text-purple-800">
+              <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Participating Parties
               </h3>
               <p className="text-3xl font-bold text-gray-800">
@@ -84,9 +84,9 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Link
               to="/results"
-              className="group block bg-purple-50 rounded-lg p-6 hover:bg-purple-100 transition duration-300"
+              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
             >
-              <h3 className="text-xl font-semibold mb-3 text-purple-800 group-hover:text-purple-900">
+              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
                 View Election Results
               </h3>
               <p className="text-gray-700">
@@ -97,9 +97,9 @@ const Home: React.FC = () => {
 
             <Link
               to="/admin"
-              className="group block bg-purple-50 rounded-lg p-6 hover:bg-purple-100 transition duration-300"
+              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
             >
-              <h3 className="text-xl font-semibold mb-3 text-purple-800 group-hover:text-purple-900">
+              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
                 Admin Panel
               </h3>
               <p className="text-gray-700">
@@ -110,9 +110,9 @@ const Home: React.FC = () => {
 
             <Link
               to="/about"
-              className="group block bg-purple-50 rounded-lg p-6 hover:bg-purple-100 transition duration-300"
+              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
             >
-              <h3 className="text-xl font-semibold mb-3 text-purple-800 group-hover:text-purple-900">
+              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
                 About the Election
               </h3>
               <p className="text-gray-700">
@@ -123,9 +123,9 @@ const Home: React.FC = () => {
 
             <Link
               to="/contact"
-              className="group block bg-purple-50 rounded-lg p-6 hover:bg-purple-100 transition duration-300"
+              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
             >
-              <h3 className="text-xl font-semibold mb-3 text-purple-800 group-hover:text-purple-900">
+              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
                 Contact Information
               </h3>
               <p className="text-gray-700">

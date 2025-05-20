@@ -270,7 +270,7 @@ const Results: React.FC = () => {
             </div>
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
             >
               Update Votes
             </button>
@@ -282,7 +282,7 @@ const Results: React.FC = () => {
           <h3 className="text-sm font-medium text-gray-500 mb-2">Parties</h3>
           <button
             onClick={() => setShowPartyForm(true)}
-            className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
           >
             Add New Party
           </button>
@@ -291,7 +291,7 @@ const Results: React.FC = () => {
 
       {/* Party Form Modal */}
       {showPartyForm && (
-        <div className="fixed inset-0 bg-purple bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
@@ -383,7 +383,7 @@ const Results: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
                   >
                     Add Party
                   </button>

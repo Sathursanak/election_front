@@ -28,7 +28,7 @@ ChartJS.register(
 // Professional color palette
 const professionalColors = {
   primary: [
-    "#7c3aed", // Vivid purple
+    "#7c3aed", // Vivid teal
     "#22c55e", // Vivid green
     "#ef4444", // Vivid red
     "#f59e42", // Orange
@@ -37,7 +37,7 @@ const professionalColors = {
     "#6366f1", // Indigo
     "#f43f5e", // Pink
     "#0ea5e9", // Sky blue
-    "#a21caf", // Deep purple
+    "#a21caf", // Deep teal
   ],
   border: [
     "#7c3aed",
@@ -247,7 +247,6 @@ const ElectionCharts: React.FC<ElectionChartsProps> = ({
             }}
           />
         </div>
-
       </div>
     </div>
   );

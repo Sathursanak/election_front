@@ -73,8 +73,8 @@ const About: React.FC = () => {
               parties are elected.
             </p>
 
-            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 mb-6">
-              <h3 className="text-lg font-semibold text-purple-800 mb-2">
+            <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-6">
+              <h3 className="text-lg font-semibold text-teal-800 mb-2">
                 Key Features of the Election System
               </h3>
               <ul className="list-disc ml-5 text-gray-700">
@@ -146,7 +146,7 @@ const About: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Western Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -157,7 +157,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Central Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -168,7 +168,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Southern Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -179,7 +179,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Northern Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -190,7 +190,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Eastern Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -201,7 +201,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 North Western Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -211,7 +211,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 North Central Province
               </h3>
               <ul className="space-y-1 text-gray-700">
@@ -221,9 +221,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
-                Uva Province
-              </h3>
+              <h3 className="font-semibold text-teal-800 mb-2">Uva Province</h3>
               <ul className="space-y-1 text-gray-700">
                 <li>Badulla</li>
                 <li>Moneragala</li>
@@ -231,7 +229,7 @@ const About: React.FC = () => {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold text-purple-800 mb-2">
+              <h3 className="font-semibold text-teal-800 mb-2">
                 Sabaragamuwa Province
               </h3>
               <ul className="space-y-1 text-gray-700">
