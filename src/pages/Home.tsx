@@ -37,9 +37,9 @@ const Home: React.FC = () => {
             Election Overview
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Total Votes Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-400  ">
               <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Votes
               </h3>
@@ -52,7 +52,7 @@ const Home: React.FC = () => {
             </div>
 
             {/* Total Seats Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-400">
               <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Seats
               </h3>
@@ -62,16 +62,7 @@ const Home: React.FC = () => {
               <p className="text-gray-500 mt-2">Parliament seats allocated</p>
             </div>
 
-            {/* Participating Parties Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1">
-              <h3 className="text-xl font-semibold mb-2 text-teal-800">
-                Participating Parties
-              </h3>
-              <p className="text-3xl font-bold text-gray-800">
-                {electionStats.participatingParties}
-              </p>
-              <p className="text-gray-500 mt-2">Contested in the election</p>
-            </div>
+           
           </div>
         </div>
       </section>
@@ -86,7 +77,7 @@ const Home: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Link
               to="/results"
-              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
+              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300 "
             >
               <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
                 View Election Results

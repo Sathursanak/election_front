@@ -204,7 +204,7 @@ const ManageParties: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Form */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+      <div className="bg-white p-6 rounded-lg shadow-md mb-8 border-2 border-teal-500">
         <h2 className="text-xl font-semibold mb-4">
           {formData.id ? "Edit Party" : "Add Party"}
         </h2>
@@ -334,7 +334,7 @@ const ManageParties: React.FC = () => {
         <h2 className="p-4 text-xl font-semibold border-b">Party List</h2>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-500">
             <thead className="bg-gray-50">
               <tr>
                 <th
@@ -536,7 +536,7 @@ const ManageVotes: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <h2 className="p-4 text-xl font-semibold border-b">District Votes</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-500">
             <thead className="bg-gray-50">
               <tr>
                 <th
@@ -619,7 +619,7 @@ const ManageVotes: React.FC = () => {
 
       {/* Edit Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Edit District Votes
@@ -710,8 +710,9 @@ const ManageVotes: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
+  
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete
             </h3>

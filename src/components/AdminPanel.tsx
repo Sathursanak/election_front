@@ -112,7 +112,7 @@ const AdminPanel: React.FC = () => {
 
   if (!selectedDistrict) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-500">
         <p className="text-gray-500 text-center">
           Please select a district to manage
         </p>
@@ -121,7 +121,7 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-8">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-8 border-2 border-teal-500">
       <h2 className="text-2xl font-semibold text-gray-800">
         Manage {selectedDistrict.name}
       </h2>

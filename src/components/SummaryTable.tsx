@@ -10,7 +10,7 @@ const SummaryTable: React.FC<SummaryTableProps> = ({ district, parties }) => {
   const bonusSeatParty = parties.find(party => party.id === district.bonusSeatPartyId);
 
   return (
-    <div className="overflow-x-auto shadow-md rounded-lg bg-white">
+    <div className="overflow-x-auto shadow-md rounded-lg bg-white border-2 border-teal-500">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>

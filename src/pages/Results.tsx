@@ -176,20 +176,20 @@ const Results: React.FC = () => {
         )}
 
         {/* District Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
             <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
             <p className="text-2xl font-bold text-gray-900">
               {selectedDistrict.seats}
             </p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
             <h3 className="text-sm font-medium text-gray-500">Valid Votes</h3>
             <p className="text-2xl font-bold text-gray-900">
               {selectedDistrict.validVotes.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
             <h3 className="text-sm font-medium text-gray-500">
               Bonus Seat Party
             </h3>

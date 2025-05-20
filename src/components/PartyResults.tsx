@@ -65,7 +65,7 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
   return (
     <div className="space-y-6">
       {/* Results Table/Cards Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-500">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">
             {selectedDistrictId === "all-districts"
@@ -307,6 +307,10 @@ const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
             <span className="font-medium">{party.percentage?.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
+            <span className="text-gray-600">Status:</span>
+            <span className={`font-medium ${party.seats > 0 ? 'text-green-700' : 'text-red-600'}`}>{party.seats > 0 ? 'Qualified' : 'Disqualified'}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-gray-600">Seats:</span>
             <span className="font-medium">{party.seats}</span>
           </div>
@@ -354,6 +358,12 @@ const PartyTable: React.FC<PartyTableProps> = ({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
             >
+              Status
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
               Seats
             </th>
             <th
@@ -393,6 +403,9 @@ const PartyTable: React.FC<PartyTableProps> = ({
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {party.percentage?.toFixed(1)}%
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <span className={`font-medium ${party.seats > 0 ? 'text-green-700' : 'text-red-600'}`}>{party.seats > 0 ? 'Qualified' : 'Disqualified'}</span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {party.seats}

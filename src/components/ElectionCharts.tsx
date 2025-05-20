@@ -27,31 +27,30 @@ ChartJS.register(
 
 // Professional color palette
 const professionalColors = {
-
-  "primary": [
-    "#0D4E8B",  // Official EC blue (primary)
-    "#1E6FBA",  // Deep sky blue
-    "#2C8C76",  // Muted teal (for environmental parties)
-    "#6B5B95",  // Soft purple
-    "#D4A76A",  // Warm gold (accent)
-    "#8B572A",  // Neutral brown
-    "#417505",  // Olive green
-    "#955251",  // Dusty red
-    "#4A4A4A",  // Dark gray (independent/other)
-    "#7F7F7F"   // Medium gray (minor parties)
+  primary: [
+    "#0D4E8B", // Official EC blue (primary)
+    "#1E6FBA", // Deep sky blue
+    "#2C8C76", // Muted teal (for environmental parties)
+    "#6B5B95", // Soft purple
+    "#D4A76A", // Warm gold (accent)
+    "#8B572A", // Neutral brown
+    "#417505", // Olive green
+    "#955251", // Dusty red
+    "#4A4A4A", // Dark gray (independent/other)
+    "#7F7F7F", // Medium gray (minor parties)
   ],
-  "border": [
-    "#0A3A6B",  // Darker blue
-    "#165A9A",  // Darker sky blue
-    "#1F6B5B",  // Darker teal
-    "#534A75",  // Darker purple
-    "#B58E50",  // Darker gold
-    "#6D3D1F",  // Darker brown
-    "#2F5A04",  // Darker green
-    "#753A39",  // Darker red
-    "#333333",  // Darker gray
-    "#5F5F5F"   // Darker medium gray
-  ]
+  border: [
+    "#0A3A6B", // Darker blue
+    "#165A9A", // Darker sky blue
+    "#1F6B5B", // Darker teal
+    "#534A75", // Darker purple
+    "#B58E50", // Darker gold
+    "#6D3D1F", // Darker brown
+    "#2F5A04", // Darker green
+    "#753A39", // Darker red
+    "#333333", // Darker gray
+    "#5F5F5F", // Darker medium gray
+  ],
 };
 
 interface ElectionChartsProps {
@@ -203,7 +202,7 @@ const ElectionCharts: React.FC<ElectionChartsProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
+    <div className="bg-white rounded-lg shadow-md p-4 border-2 border-teal-500">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">
         Election Results Visualization
       </h2>
