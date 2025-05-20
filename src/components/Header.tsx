@@ -20,14 +20,20 @@ const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 left-0 w-full bg-teal-950 text-white shadow-md z-50">
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center">
           <Link
             to="/"
             className="flex items-center space-x-2"
             onClick={closeMenu}
           >
-            <span className="font-bold text-xl md:text-2xl whitespace-nowrap">
+            <img
+              src="https://www.pngmart.com/files/22/Sri-Lanka-Flag-PNG-Photo.png"
+              alt="Sri Lanka Emblem"
+              className="h-8 w-8 "
+        
+            />
+            <span className="font-bold text-xl md:text-2xl">
               SL Election Commission
             </span>
           </Link>

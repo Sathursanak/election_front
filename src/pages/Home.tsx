@@ -1,26 +1,28 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useElectionData } from "../context/ElectionDataContext";
+// import HomeHeroSlider from "../components/HomeHeroSlider";
 
 const Home: React.FC = () => {
   const { electionStats } = useElectionData();
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-teal-900 text-white py-16 md:py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/1550337/pexels-photo-1550337.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')] bg-cover bg-center opacity-20"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-              Sri Lanka Parliamentary Election 2025 Results
-            </h1>
-            <p className="text-lg md:text-xl text-teal-100 mb-8">
-              Vote counts and seat allocations by district
-            </p>
+      {/* Hero Section with Static Image */}
+      <section className="relative w-full h-64 md:h-96 overflow-hidden rounded-b-2xl shadow-lg">
+        <img
+          src="https://www.shutterstock.com/image-photo/election-sri-lanka-hand-man-260nw-1581645550.jpg"
+          alt="Sri Lanka Election Hero"
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-40 z-10 flex flex-col items-center justify-center">
+          <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white text-center drop-shadow-lg px-4 ">
+            Sri Lanka Parliamentary Election 2025 Results
+          </h1>
+          <div className="absolute bottom-8 right-8 z-20">
             <Link
               to="/results"
-              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105"
+              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
             >
               View Results
             </Link>

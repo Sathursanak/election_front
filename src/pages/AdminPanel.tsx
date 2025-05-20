@@ -424,8 +424,8 @@ const ManageParties: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete
             </h3>
@@ -619,11 +619,18 @@ const ManageVotes: React.FC = () => {
 
       {/* Edit Modal */}
       {editModalOpen && (
-        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Edit District Votes
             </h3>
+            {formData.districtId && (
+              <div className="mb-2 text-base font-semibold text-teal-700">
+                District:{" "}
+                {districts.find((d) => d.id === formData.districtId)?.name ||
+                  formData.districtId}
+              </div>
+            )}
             {formError && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
                 {formError}

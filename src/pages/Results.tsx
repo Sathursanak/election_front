@@ -291,8 +291,8 @@ const Results: React.FC = () => {
 
       {/* Party Form Modal */}
       {showPartyForm && (
-        <div className="fixed inset-0 bg-teal bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full m-4">
+        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full m-4 border-2 border-teal-500">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
                 Add New Party
