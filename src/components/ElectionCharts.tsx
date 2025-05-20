@@ -27,30 +27,31 @@ ChartJS.register(
 
 // Professional color palette
 const professionalColors = {
-  primary: [
-    "#7c3aed", // Vivid teal
-    "#22c55e", // Vivid green
-    "#ef4444", // Vivid red
-    "#f59e42", // Orange
-    "#3b82f6", // Blue
-    "#eab308", // Yellow
-    "#6366f1", // Indigo
-    "#f43f5e", // Pink
-    "#0ea5e9", // Sky blue
-    "#a21caf", // Deep teal
+
+  "primary": [
+    "#0D4E8B",  // Official EC blue (primary)
+    "#1E6FBA",  // Deep sky blue
+    "#2C8C76",  // Muted teal (for environmental parties)
+    "#6B5B95",  // Soft purple
+    "#D4A76A",  // Warm gold (accent)
+    "#8B572A",  // Neutral brown
+    "#417505",  // Olive green
+    "#955251",  // Dusty red
+    "#4A4A4A",  // Dark gray (independent/other)
+    "#7F7F7F"   // Medium gray (minor parties)
   ],
-  border: [
-    "#7c3aed",
-    "#22c55e",
-    "#ef4444",
-    "#f59e42",
-    "#3b82f6",
-    "#eab308",
-    "#6366f1",
-    "#f43f5e",
-    "#0ea5e9",
-    "#a21caf",
-  ],
+  "border": [
+    "#0A3A6B",  // Darker blue
+    "#165A9A",  // Darker sky blue
+    "#1F6B5B",  // Darker teal
+    "#534A75",  // Darker purple
+    "#B58E50",  // Darker gold
+    "#6D3D1F",  // Darker brown
+    "#2F5A04",  // Darker green
+    "#753A39",  // Darker red
+    "#333333",  // Darker gray
+    "#5F5F5F"   // Darker medium gray
+  ]
 };
 
 interface ElectionChartsProps {
