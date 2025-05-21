@@ -112,7 +112,7 @@ const AdminPanel: React.FC = () => {
 
   if (!selectedDistrict) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-500">
+      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
         <p className="text-gray-500 text-center">
           Please select a district to manage
         </p>
@@ -121,7 +121,7 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-8 border-2 border-teal-500">
+    <div className="bg-white rounded-lg shadow-md p-6 space-y-8 border-2 border-teal-800">
       <h2 className="text-2xl font-semibold text-gray-800">
         Manage {selectedDistrict.name}
       </h2>
@@ -245,7 +245,7 @@ const AdminPanel: React.FC = () => {
       {/* Edit Party Modal */}
       {editingParty && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-500">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Edit Party
             </h3>
@@ -330,7 +330,7 @@ const AdminPanel: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-500">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Delete Party
             </h3>
@@ -365,31 +365,31 @@ const AdminPanel: React.FC = () => {
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Party
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Votes
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Percentage
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Seats
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Actions
                   <button

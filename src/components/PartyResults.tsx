@@ -65,7 +65,7 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
   return (
     <div className="space-y-6">
       {/* Results Table/Cards Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-500">
+      <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">
             {selectedDistrictId === "all-districts"
@@ -76,8 +76,8 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
             <button
               className={`px-3 py-1 rounded transition-colors ${
                 viewMode === "cards"
-                  ? "bg-gray-100 text-gray-800 font-semibold"
-                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  ? "bg-teal-600 text-white font-semibold"
+                  : " text-gray-600 hover:bg-gray-100 font-medium"
               }`}
               onClick={() => setViewMode("cards")}
             >
@@ -86,8 +86,8 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
             <button
               className={`px-3 py-1 rounded transition-colors ${
                 viewMode === "table"
-                  ? "bg-gray-100 text-gray-800 font-semibold"
-                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  ? "bg-teal-600 text-white font-semibold"
+                  : " text-gray-600 hover:bg-gray-100 font-medium"
               }`}
               onClick={() => setViewMode("table")}
             >
@@ -122,7 +122,7 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
         {/* Edit Modal */}
         {editingParty && (
           <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-500">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Edit Party
               </h3>
@@ -211,7 +211,7 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
         {/* Delete Confirmation Modal */}
         {deleteModalOpen && (
           <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-500">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Delete Party
               </h3>
@@ -256,11 +256,17 @@ interface PartyCardProps {
 }
 
 const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
+  // Determine if this party is the bonus seat party (highest votes in its district)
+  // We'll use the same logic as the table: highest votes among all parties in the same district
+  const { parties } = useElectionData();
+  const districtParties = parties.filter(
+    (p) => p.districtId === party.districtId
+  );
+  const maxVotes = Math.max(...districtParties.map((p) => p.votes));
+  const isBonusSeat = party.votes === maxVotes && maxVotes > 0;
   return (
     <div
-      className={`border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all ${
-        party.hasBonusSeat ? "border-green-500" : "border-gray-200"
-      }`}
+      className={`border border-black rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all`}
     >
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
@@ -272,7 +278,7 @@ const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
             />
             <div>
               <h3 className="font-semibold text-gray-800">{party.name}</h3>
-              {party.hasBonusSeat && (
+              {isBonusSeat && (
                 <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
                   Bonus Seat
                 </span>
@@ -307,10 +313,6 @@ const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
             <span className="font-medium">{party.percentage?.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Status:</span>
-            <span className={`font-medium ${party.seats > 0 ? 'text-green-700' : 'text-red-600'}`}>{party.seats > 0 ? 'Qualified' : 'Disqualified'}</span>
-          </div>
-          <div className="flex justify-between">
             <span className="text-gray-600">Seats:</span>
             <span className="font-medium">{party.seats}</span>
           </div>
@@ -331,6 +333,17 @@ const PartyTable: React.FC<PartyTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  // Find the bonus seat party id for the current district (if any)
+  // This assumes PartyResults is only used for a single district at a time
+  // Find the party (or parties) with the highest votes for bonus seat logic
+  const maxVotes = Math.max(...parties.map((p) => p.votes));
+  const bonusSeatPartyIds = parties
+    .filter((p) => p.votes === maxVotes && maxVotes > 0)
+    .map((p) => p.id);
+  // Qualification logic: party must have >= 5% of total valid votes in the district
+  const totalValidVotes = parties.reduce((sum, p) => sum + p.votes, 0);
+  const minVotesToQualify = Math.floor(totalValidVotes * 0.05);
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -338,107 +351,121 @@ const PartyTable: React.FC<PartyTableProps> = ({
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Party
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Votes
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Percentage
-            </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Status
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
+            >
+              Percentage
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Seats
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Bonus Seat
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
               Actions
             </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {parties.map((party) => (
-            <tr
-              key={party.id}
-              className={`hover:bg-gray-50 transition-colors ${
-                party.hasBonusSeat ? "bg-green-50" : ""
-              }`}
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src={party.logoData}
-                    alt={`${party.name} logo`}
-                    className="w-8 h-8 object-contain"
-                  />
-                  <div className="font-medium text-gray-900">{party.name}</div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {party.votes.toLocaleString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {party.percentage?.toFixed(1)}%
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <span className={`font-medium ${party.seats > 0 ? 'text-green-700' : 'text-red-600'}`}>{party.seats > 0 ? 'Qualified' : 'Disqualified'}</span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {party.seats}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {party.hasBonusSeat ? (
-                  <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    Yes
-                  </span>
-                ) : (
-                  <span className="text-gray-500">No</span>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => onEdit(party)}
-                    className="text-gray-600 hover:text-gray-800 transition-colors"
-                    title="Edit party"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => onDelete(party)}
-                    className="text-red-700 hover:text-red-800 transition-colors"
-                    title="Delete party"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+          {parties.map((party) => {
+            const qualified = party.votes >= minVotesToQualify;
+            const isBonusSeat = bonusSeatPartyIds.includes(party.id);
+            return (
+              <tr
+                key={party.id}
+                className={`hover:bg-gray-50 transition-colors ${
+                  isBonusSeat ? "bg-green-50" : ""
+                }`}
+              >
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={party.logoData}
+                      alt={`${party.name} logo`}
+                      className="w-8 h-8 object-contain"
+                    />
+                    <div className="font-medium text-gray-900">
+                      {party.name}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {party.votes.toLocaleString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {qualified ? (
+                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                      Qualified
+                    </span>
+                  ) : (
+                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                      Disqualified
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {party.percentage?.toFixed(1)}%
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {party.seats}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {isBonusSeat ? (
+                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                      Yes
+                    </span>
+                  ) : (
+                    <span className="text-gray-700">No</span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onEdit(party)}
+                      className="text-gray-600 hover:text-gray-800 transition-colors"
+                      title="Edit party"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => onDelete(party)}
+                      className="text-red-700 hover:text-red-800 transition-colors"
+                      title="Delete party"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

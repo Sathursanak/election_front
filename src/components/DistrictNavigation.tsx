@@ -12,9 +12,12 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
 }) => {
   const { districts, selectedDistrictId, setSelectedDistrictId } =
     useElectionData();
+  // Initially all provinces are collapsed (false)
   const [expandedProvinces, setExpandedProvinces] = useState<
     Record<string, boolean>
-  >(provinces.reduce((acc, province) => ({ ...acc, [province.id]: true }), {}));
+  >(
+    provinces.reduce((acc, province) => ({ ...acc, [province.id]: false }), {})
+  );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -68,7 +71,7 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
                   key={district.id}
                   className={`w-full text-left px-3 py-2 rounded-md transition ${
                     selectedDistrictId === district.id
-                      ? "bg-teal-100 text-teal-800 font-semibold"
+                      ? "bg-teal-100  font-semibold"
                       : "hover:bg-gray-100"
                   }`}
                   onClick={() => handleDistrictSelect(district.id)}
@@ -123,11 +126,11 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
           {/* Search Bar */}
           <div className="relative mb-4">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
+              <Search size={16} className="text-gray-600" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-teal-300 rounded-md leading-5 bg-white placeholder-gray-700 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-800 focus:border-teal-800 sm:text-sm"
               placeholder="Search districts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

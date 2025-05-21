@@ -202,7 +202,7 @@ const ElectionCharts: React.FC<ElectionChartsProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 border-2 border-teal-500">
+    <div className="bg-white rounded-lg shadow-md p-4 border-2 border-teal-800">
       <h2 className="text-xl font-semibold text-gray-800 mb-6">
         Election Results Visualization
       </h2>

@@ -17,7 +17,7 @@ const AdminPanel: React.FC = () => {
         <button
           className={`px-4 py-2 font-medium text-sm focus:outline-none ${
             activeTab === "parties"
-              ? "text-teal-600 border-b-2 border-teal-600"
+              ? "text-teal-800 border-b-2 border-teal-800"
               : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("parties")}
@@ -27,7 +27,7 @@ const AdminPanel: React.FC = () => {
         <button
           className={`px-4 py-2 font-medium text-sm focus:outline-none ${
             activeTab === "votes"
-              ? "text-teal-600 border-b-2 border-teal-600"
+              ? "text-teal-800 border-b-2 border-teal-800"
               : "text-gray-500 hover:text-gray-700"
           }`}
           onClick={() => setActiveTab("votes")}
@@ -204,7 +204,7 @@ const ManageParties: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Form */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8 border-2 border-teal-500">
+      <div className="bg-white p-6 rounded-lg shadow-md mb-8 border-2 border-teal-800">
         <h2 className="text-xl font-semibold mb-4">
           {formData.id ? "Edit Party" : "Add Party"}
         </h2>
@@ -236,7 +236,7 @@ const ManageParties: React.FC = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
                 required
               />
             </div>
@@ -255,7 +255,7 @@ const ManageParties: React.FC = () => {
                 value={formData.votes}
                 onChange={handleChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
                 placeholder="Enter vote count"
               />
             </div>
@@ -274,7 +274,7 @@ const ManageParties: React.FC = () => {
                   name="logoData"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
                 />
                 {formData.logoData && (
                   <img
@@ -298,7 +298,7 @@ const ManageParties: React.FC = () => {
                 name="districtId"
                 value={formData.districtId}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
                 required
               >
                 <option value="">Select District</option>
@@ -314,7 +314,7 @@ const ManageParties: React.FC = () => {
           <div className="flex space-x-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50"
+              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-800 focus:ring-opacity-50"
             >
               {formData.id ? "Update Party" : "Add Party"}
             </button>
@@ -334,36 +334,36 @@ const ManageParties: React.FC = () => {
         <h2 className="p-4 text-xl font-semibold border-b">Party List</h2>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-500">
+          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-800">
             <thead className="bg-gray-50">
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Party Name
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Gained Votes
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Logo
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   District
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Actions
                 </th>
@@ -382,7 +382,7 @@ const ManageParties: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-700">
                         {party.votes.toLocaleString()}
                       </div>
                     </td>
@@ -394,7 +394,7 @@ const ManageParties: React.FC = () => {
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-700">
                         {district?.name || "Unknown"}
                       </div>
                     </td>
@@ -425,7 +425,7 @@ const ManageParties: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-800">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete
             </h3>
@@ -536,36 +536,36 @@ const ManageVotes: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <h2 className="p-4 text-xl font-semibold border-b">District Votes</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-500">
+          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-800">
             <thead className="bg-gray-50">
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   District
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Total Votes
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Rejected Votes
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Valid Votes
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
                 >
                   Actions
                 </th>
@@ -580,17 +580,17 @@ const ManageVotes: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-700">
                       {district.totalVotes.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-700">
                       {district.rejectedVotes.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-700">
                       {district.validVotes.toLocaleString()}
                     </div>
                   </td>
@@ -619,8 +619,8 @@ const ManageVotes: React.FC = () => {
 
       {/* Edit Modal */}
       {editModalOpen && (
-         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
+        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-800">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Edit District Votes
             </h3>
@@ -710,9 +710,8 @@ const ManageVotes: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && (
-         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-500">
-  
+        <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full border-2 border-teal-800">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Confirm Delete
             </h3>

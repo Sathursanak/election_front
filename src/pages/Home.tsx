@@ -22,7 +22,7 @@ const Home: React.FC = () => {
           <div className="absolute bottom-8 right-8 z-20">
             <Link
               to="/results"
-              className="inline-block bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
+              className="inline-block bg-teal-800 hover:bg-teal-900 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
             >
               View Results
             </Link>
@@ -39,7 +39,7 @@ const Home: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Total Votes Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-400  ">
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800  ">
               <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Votes
               </h3>
@@ -47,12 +47,12 @@ const Home: React.FC = () => {
                 {electionStats.totalVotes.toLocaleString()}
               </p>
               <p className="text-gray-500 mt-2">
-                Cast across 23 electoral districts
+                Cast across 22 electoral districts
               </p>
             </div>
 
             {/* Total Seats Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-400">
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800">
               <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Seats
               </h3>
@@ -61,8 +61,6 @@ const Home: React.FC = () => {
               </p>
               <p className="text-gray-500 mt-2">Parliament seats allocated</p>
             </div>
-
-           
           </div>
         </div>
       </section>
@@ -84,7 +82,7 @@ const Home: React.FC = () => {
               </h3>
               <p className="text-gray-700">
                 Explore detailed election results including vote counts, seat
-                allocations, and bonus seats for all 23 electoral districts.
+                allocations, and bonus seats for all 22 electoral districts.
               </p>
             </Link>
 

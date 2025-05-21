@@ -59,7 +59,7 @@ const About: React.FC = () => {
             </p>
 
             <p className="text-gray-700 mb-4">
-              Out of the 225 members, 196 are elected from 23 electoral
+              Out of the 225 members, 196 are elected from 22 electoral
               districts, while 29 are appointed from national lists submitted by
               political parties based on the total number of votes received by
               each party.
@@ -73,13 +73,13 @@ const About: React.FC = () => {
               parties are elected.
             </p>
 
-            <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-6">
+            <div className="bg-teal-50 border-l-4 border-teal-800 p-4 mb-6">
               <h3 className="text-lg font-semibold text-teal-800 mb-2">
                 Key Features of the Election System
               </h3>
               <ul className="list-disc ml-5 text-gray-700">
                 <li>Proportional representation with preferential voting</li>
-                <li>23 electoral districts across 9 provinces</li>
+                <li>22 electoral districts across 9 provinces</li>
                 <li>
                   Bonus seats for the highest-voted party in each district
                 </li>
@@ -185,7 +185,6 @@ const About: React.FC = () => {
               <ul className="space-y-1 text-gray-700">
                 <li>Jaffna</li>
                 <li>Vanni</li>
-                <li>Mannar</li>
               </ul>
             </div>
 

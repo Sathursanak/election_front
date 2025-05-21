@@ -3,6 +3,70 @@ import { useElectionData } from "../context/ElectionDataContext";
 import DistrictNavigation from "../components/DistrictNavigation";
 import SummaryTable from "../components/SummaryTable";
 import PartyResults from "../components/PartyResults";
+
+// --- Seat allocation logic (Pascal-aligned, for graph and table) ---
+function allocateSeats(parties: any[], totalSeats: number) {
+  // 1. Calculate total valid votes
+  const totalValidVotes = parties.reduce((sum, p) => sum + p.votes, 0);
+  // 2. Determine minimum votes to qualify
+  const minVotesToQualify = Math.floor(totalValidVotes * 0.05);
+  // 3. Filter out disqualified parties
+  const qualified = parties.map((p) => p.votes >= minVotesToQualify);
+  const qualifiedParties = parties.filter((_, i) => qualified[i]);
+  const disqualifiedParties = parties.filter((_, i) => !qualified[i]);
+  const disqualifiedVotes = disqualifiedParties.reduce(
+    (sum, p) => sum + p.votes,
+    0
+  );
+  // 4. Only use qualified votes for seat allocation
+  const seatsValidVotes = totalValidVotes - disqualifiedVotes;
+  // 5. Bonus seat allocation
+  const maxVotes = Math.max(...qualifiedParties.map((p) => p.votes));
+  const bonusSeatPartyIds = qualifiedParties
+    .filter((p) => p.votes === maxVotes && maxVotes > 0)
+    .map((p) => p.id);
+  let seatsLeft = totalSeats - bonusSeatPartyIds.length;
+  const seatAlloc: Record<string, number> = {};
+  qualifiedParties.forEach((p) => (seatAlloc[p.id] = 0));
+  bonusSeatPartyIds.forEach((id) => {
+    seatAlloc[id] += 1;
+  });
+  // 6. First round seat allocation
+  const votesPerSeat =
+    seatsLeft > 0 ? Math.floor(seatsValidVotes / seatsLeft) : 0;
+  const partyVotes: Record<string, number> = {};
+  qualifiedParties.forEach((p) => (partyVotes[p.id] = p.votes));
+  let changed = true;
+  while (changed && seatsLeft > 0) {
+    changed = false;
+    qualifiedParties.forEach((p) => {
+      while (partyVotes[p.id] >= votesPerSeat && seatsLeft > 0) {
+        partyVotes[p.id] -= votesPerSeat;
+        seatAlloc[p.id] += 1;
+        seatsLeft -= 1;
+        changed = true;
+      }
+    });
+  }
+  // 7. Second round seat allocation (by highest remaining votes)
+  const sorted = [...qualifiedParties].sort(
+    (a, b) => partyVotes[b.id] - partyVotes[a.id]
+  );
+  let i = 0;
+  while (seatsLeft > 0 && sorted.length > 0) {
+    seatAlloc[sorted[i % sorted.length].id] += 1;
+    seatsLeft -= 1;
+    i++;
+  }
+  // 8. Compose result for all parties
+  return parties.map((p) => ({
+    ...p,
+    percentage: totalValidVotes > 0 ? (p.votes / totalValidVotes) * 100 : 0,
+    seats: seatAlloc[p.id] || 0,
+    status: p.votes >= minVotesToQualify ? "Qualified" : "Disqualified",
+    hasBonusSeat: bonusSeatPartyIds.includes(p.id),
+  }));
+}
 import { X } from "lucide-react";
 
 interface PartyFormData {
@@ -55,8 +119,13 @@ const Results: React.FC = () => {
 
   const selectedDistrict =
     districts.find((d) => d.id === selectedDistrictId) || districts[0];
-  const selectedParties = parties.filter(
+  const selectedPartiesRaw = parties.filter(
     (p) => p.districtId === selectedDistrictId
+  );
+  // Use Pascal-aligned seat allocation for this district
+  const selectedParties = allocateSeats(
+    selectedPartiesRaw,
+    selectedDistrict.seats
   );
 
   const handlePartySubmit = async (e: React.FormEvent) => {
@@ -74,6 +143,22 @@ const Results: React.FC = () => {
     const votesNumber = parseInt(partyFormData.votes, 10) || 0;
     if (votesNumber < 0) {
       setPartyFormError("Votes cannot be negative");
+      return;
+    }
+
+    // Enforce that sum of all party votes does not exceed valid votes
+    const districtParties = parties.filter(
+      (p) => p.districtId === selectedDistrictId
+    );
+    const currentVotesSum = districtParties.reduce(
+      (sum, p) => sum + p.votes,
+      0
+    );
+    const newTotalVotes = currentVotesSum + votesNumber;
+    if (newTotalVotes > selectedDistrict.validVotes) {
+      setPartyFormError(
+        `Total party votes (${newTotalVotes}) cannot exceed valid votes (${selectedDistrict.validVotes}).`
+      );
       return;
     }
 
@@ -177,25 +262,34 @@ const Results: React.FC = () => {
 
         {/* District Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
             <p className="text-2xl font-bold text-gray-900">
               {selectedDistrict.seats}
             </p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">Valid Votes</h3>
             <p className="text-2xl font-bold text-gray-900">
               {selectedDistrict.validVotes.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-500">
+          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">
               Bonus Seat Party
             </h3>
             <p className="text-2xl font-bold text-green-600">
-              {parties.find((p) => p.id === selectedDistrict.bonusSeatPartyId)
-                ?.name || "Not Assigned"}
+              {(() => {
+                // Always show the party with the highest votes in the district
+                const districtParties = parties.filter(
+                  (p) => p.districtId === selectedDistrict.id
+                );
+                if (districtParties.length === 0) return "Not Assigned";
+                const bonusParty = districtParties.reduce((prev, curr) =>
+                  curr.votes > prev.votes ? curr : prev
+                );
+                return bonusParty.name;
+              })()}
             </p>
           </div>
         </div>
@@ -222,9 +316,7 @@ const Results: React.FC = () => {
 
         {/* Vote Management */}
         <form onSubmit={handleVoteSubmit} className="mb-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">
-            Update Votes
-          </h3>
+          <h3 className="text-sm font-medium text-gray-800 mb-2">Votes</h3>
 
           {voteFormError && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
@@ -279,7 +371,7 @@ const Results: React.FC = () => {
 
         {/* Party Management */}
         <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Parties</h3>
+          <h3 className="text-sm font-medium text-gray-800 mb-2">Parties</h3>
           <button
             onClick={() => setShowPartyForm(true)}
             className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
@@ -292,7 +384,7 @@ const Results: React.FC = () => {
       {/* Party Form Modal */}
       {showPartyForm && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full m-4 border-2 border-teal-500">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full m-4 border-2 border-teal-800">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
                 Add New Party

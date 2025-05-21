@@ -39,7 +39,7 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden md:flex space-x-6 text-lg">
             <NavLink to="/" isActive={isActiveLink("/")}>
               Home
             </NavLink>
