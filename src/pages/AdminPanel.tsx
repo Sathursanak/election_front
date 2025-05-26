@@ -1,15 +1,27 @@
 import React, { useState } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
 import { Party, DistrictVote } from "../types";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Settings as SettingsIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"parties" | "votes">("parties");
+  const navigate = useNavigate();
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 relative">
       <h1 className="text-2xl md:text-3xl font-bold text-center text-teal-800 mb-8">
         Admin Panel
+        <button
+          className="absolute right-4 top-8 flex items-center gap-1 text-gray-500 hover:text-teal-700 transition focus:outline-none"
+          title="Settings"
+          onClick={() => navigate("/settings")}
+        >
+          <SettingsIcon size={22} />
+          <span className="hidden md:inline text-base font-medium">
+            Settings
+          </span>
+        </button>
       </h1>
 
       {/* Tabs */}
@@ -49,16 +61,16 @@ const ManageParties: React.FC = () => {
   const [formData, setFormData] = useState<{
     id: string | null;
     name: string;
-    votes: string;
     logoData?: string;
     districtId: string;
   }>({
     id: null,
     name: "",
-    votes: "",
     logoData: undefined,
     districtId: "",
   });
+  const [votesEdit, setVotesEdit] = useState<{ [partyId: string]: string }>({});
+  const [votesEditOpen, setVotesEditOpen] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -100,14 +112,6 @@ const ManageParties: React.FC = () => {
       setFormError("Party name is required");
       return false;
     }
-    if (
-      formData.votes === "" ||
-      isNaN(Number(formData.votes)) ||
-      Number(formData.votes) < 0
-    ) {
-      setFormError("Votes cannot be empty or negative");
-      return false;
-    }
     if (!formData.districtId) {
       setFormError("Please select a district");
       return false;
@@ -125,20 +129,19 @@ const ManageParties: React.FC = () => {
     if (!validateForm()) return;
 
     if (formData.id) {
-      // Update existing party
+      // Update existing party (except votes)
       updateParty({
         id: formData.id,
         name: formData.name,
-        votes: Number(formData.votes),
         logoData: formData.logoData,
         districtId: formData.districtId,
       });
       setFormSuccess("Party updated successfully");
     } else {
-      // Add new party
+      // Add new party (votes start at 0)
       addParty({
         name: formData.name,
-        votes: Number(formData.votes),
+        votes: 0,
         logoData: formData.logoData,
         districtId: formData.districtId,
       });
@@ -149,7 +152,6 @@ const ManageParties: React.FC = () => {
     setFormData({
       id: null,
       name: "",
-      votes: "",
       logoData: undefined,
       districtId: "",
     });
@@ -243,25 +245,6 @@ const ManageParties: React.FC = () => {
 
             <div>
               <label
-                htmlFor="votes"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Gained Votes
-              </label>
-              <input
-                type="number"
-                id="votes"
-                name="votes"
-                value={formData.votes}
-                onChange={handleChange}
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
-                placeholder="Enter vote count"
-              />
-            </div>
-
-            <div>
-              <label
                 htmlFor="logoData"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
@@ -332,93 +315,80 @@ const ManageParties: React.FC = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <h2 className="p-4 text-xl font-semibold border-b">Party List</h2>
-
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-800">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-                >
-                  Party Name
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-                >
-                  Gained Votes
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-                >
-                  Logo
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-                >
-                  District
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {parties.map((party) => {
-                const district = districts.find(
-                  (d) => d.id === party.districtId
-                );
-                return (
-                  <tr key={party.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {party.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {party.votes.toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <img
-                        src={party.logoData}
-                        alt={`${party.name} logo`}
-                        className="w-8 h-8 object-contain"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {district?.name || "Unknown"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleEdit(party)}
-                        className="p-2 text-teal-600 hover:text-teal-900 mr-2"
-                        title="Edit"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(party)}
-                        className="p-2 text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Group parties by district */}
+          {districts
+            .filter((d) => d.id !== "all-districts")
+            .map((district) => {
+              const districtParties = parties.filter(
+                (p) => p.districtId === district.id
+              );
+              if (districtParties.length === 0) return null;
+              return (
+                <div key={district.id} className="mb-8">
+                  <h3 className="px-6 py-3 text-lg font-bold text-teal-800 bg-gray-50 border-b border-teal-200">
+                    {district.name}
+                  </h3>
+                  <table className="min-w-full divide-y divide-gray-200 border-2 border-teal-800 mb-4">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                          Party Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                          Votes
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                          Logo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {districtParties.map((party) => (
+                        <tr key={party.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {party.name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-700">
+                              {party.votes.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <img
+                              src={party.logoData}
+                              alt={`${party.name} logo`}
+                              className="w-8 h-8 object-contain"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleEdit(party)}
+                              className="p-2 text-teal-600 hover:text-teal-900 mr-2"
+                              title="Edit"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(party)}
+                              className="p-2 text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
         </div>
       </div>
 

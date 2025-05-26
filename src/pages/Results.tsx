@@ -3,6 +3,8 @@ import { useElectionData } from "../context/ElectionDataContext";
 import DistrictNavigation from "../components/DistrictNavigation";
 import SummaryTable from "../components/SummaryTable";
 import PartyResults from "../components/PartyResults";
+import ElectionPieCharts from "../components/ElectionPieCharts";
+import SriLankaMap from "../components/SriLankaMap";
 
 // --- Seat allocation logic (Pascal-aligned, for graph and table) ---
 function allocateSeats(parties: any[], totalSeats: number) {
@@ -83,6 +85,8 @@ const Results: React.FC = () => {
     setSelectedDistrictId,
     addParty,
     updateDistrictVotes,
+    updateParty,
+    electionStats, // <-- already present
   } = useElectionData();
 
   const [showPartyForm, setShowPartyForm] = useState(false);
@@ -99,12 +103,19 @@ const Results: React.FC = () => {
   const [voteFormError, setVoteFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Set default district if none selected
+  const [showAddVotesModal, setShowAddVotesModal] = useState(false);
+  const [addVotesPartyId, setAddVotesPartyId] = useState("");
+  const [addVotesValue, setAddVotesValue] = useState("");
+  const [addVotesError, setAddVotesError] = useState<string | null>(null);
+  const [addVotesSuccess, setAddVotesSuccess] = useState<string | null>(null);
+
+  // Always show island-wide results by default on mount
   useEffect(() => {
-    if (!selectedDistrictId) {
-      setSelectedDistrictId("colombo");
+    if (selectedDistrictId !== "all-districts") {
+      setSelectedDistrictId("all-districts");
     }
-  }, [selectedDistrictId, setSelectedDistrictId]);
+    // eslint-disable-next-line
+  }, []); // Only run on mount
 
   // Update vote form data when district changes
   useEffect(() => {
@@ -117,16 +128,67 @@ const Results: React.FC = () => {
     }
   }, [selectedDistrictId, districts]);
 
-  const selectedDistrict =
-    districts.find((d) => d.id === selectedDistrictId) || districts[0];
-  const selectedPartiesRaw = parties.filter(
+  // If "all-districts" is selected, show island-wide result
+  const isIslandWide = selectedDistrictId === "all-districts";
+  let selectedDistrict = districts.find((d) => d.id === selectedDistrictId);
+  let selectedPartiesRaw = parties.filter(
     (p) => p.districtId === selectedDistrictId
   );
-  // Use Pascal-aligned seat allocation for this district
-  const selectedParties = allocateSeats(
-    selectedPartiesRaw,
-    selectedDistrict.seats
-  );
+  let selectedParties = selectedPartiesRaw;
+  let islandWideStats = null;
+  if (isIslandWide) {
+    // Aggregate all parties by name (island-wide)
+    const partyMap: Record<string, any> = {};
+    parties.forEach((p) => {
+      const key = p.name.trim().toLowerCase();
+      if (!partyMap[key]) {
+        partyMap[key] = { ...p, votes: 0, seats: 0, districts: new Set() };
+      }
+      partyMap[key].votes += p.votes;
+      partyMap[key].seats += p.seats || 0;
+      partyMap[key].districts.add(p.districtId);
+    });
+    // Use the total seats from settings for island-wide
+    const allSeats = electionStats.totalSeats;
+    const allParties = Object.values(partyMap).map((p: any) => ({
+      ...p,
+      districts: Array.from(p.districts),
+    }));
+    const allocated = allocateSeats(allParties, allSeats);
+    selectedParties = allocated;
+    selectedPartiesRaw = allParties;
+    selectedDistrict = {
+      id: "all-districts",
+      name: "Island-wide",
+      seats: allSeats,
+      validVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
+      totalVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
+      rejectedVotes: 0,
+      province: "All",
+      bonusSeats: 0,
+      bonusSeatPartyId: null,
+    };
+    islandWideStats = {
+      leadingParty: allocated.reduce(
+        (prev, curr) => (curr.votes > prev.votes ? curr : prev),
+        allocated[0]
+      ),
+      totalVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
+      totalSeats: allSeats,
+    };
+  } else {
+    selectedDistrict =
+      districts.find((d) => d.id === selectedDistrictId) || districts[0];
+    selectedPartiesRaw = parties.filter(
+      (p) => p.districtId === selectedDistrictId
+    );
+    selectedParties = allocateSeats(selectedPartiesRaw, selectedDistrict.seats);
+  }
+
+  // Only show parties in the current district
+  const districtParties = !isIslandWide
+    ? parties.filter((p) => p.districtId === selectedDistrictId)
+    : [];
 
   const handlePartySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,13 +305,15 @@ const Results: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Left Column - Navigation */}
-      <DistrictNavigation className="w-64 flex-shrink-0" />
+      <DistrictNavigation className="w-64 flex-shrink-0" showIslandWideOption />
 
       {/* Middle Column - Results */}
       <div className="flex-1 p-6 border-l border-r border-gray-200">
         <header className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">
-            {selectedDistrict.name} District Results
+            {isIslandWide
+              ? "Island-wide Results"
+              : `${selectedDistrict.name} District Results`}
           </h1>
           <p className="text-gray-600">Parliamentary Election 2025</p>
         </header>
@@ -260,7 +324,7 @@ const Results: React.FC = () => {
           </div>
         )}
 
-        {/* District Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
           <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
@@ -276,199 +340,251 @@ const Results: React.FC = () => {
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">
-              Bonus Seat Party
+              {isIslandWide ? "Leading Party" : "Bonus Seat Party"}
             </h3>
             <p className="text-2xl font-bold text-green-600">
-              {(() => {
-                // Always show the party with the highest votes in the district
-                const districtParties = parties.filter(
-                  (p) => p.districtId === selectedDistrict.id
-                );
-                if (districtParties.length === 0) return "Not Assigned";
-                const bonusParty = districtParties.reduce((prev, curr) =>
-                  curr.votes > prev.votes ? curr : prev
-                );
-                return bonusParty.name;
-              })()}
+              {isIslandWide
+                ? islandWideStats?.leadingParty?.name || "Not Assigned"
+                : (() => {
+                    const districtParties = parties.filter(
+                      (p) => p.districtId === selectedDistrict.id
+                    );
+                    if (districtParties.length === 0) return "Not Assigned";
+                    const bonusParty = districtParties.reduce((prev, curr) =>
+                      curr.votes > prev.votes ? curr : prev
+                    );
+                    return bonusParty.name;
+                  })()}
             </p>
           </div>
         </div>
 
-        {/* Summary Table */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-3">
-            District Summary
-          </h2>
-          <SummaryTable district={selectedDistrict} parties={parties} />
-        </div>
-
-        {/* Party Results */}
-        <div className="mb-8">
-          <PartyResults parties={selectedParties} />
-        </div>
+        {/* Election Pie Charts for Island-wide view, hide summary and party results */}
+        {isIslandWide ? (
+          <>
+            {/* Sri Lanka Map before bar chart */}
+            <SriLankaMap />
+            <ElectionPieCharts
+              parties={selectedParties}
+              districts={districts}
+              allParties={parties}
+            />
+          </>
+        ) : (
+          <>
+            {/* Summary Table */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-3">
+                District Summary
+              </h2>
+              <SummaryTable district={selectedDistrict} parties={parties} />
+            </div>
+            {/* Party Results */}
+            <div className="mb-8">
+              <PartyResults parties={selectedParties} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Right Column - Admin Controls */}
-      <div className="w-64 p-6 bg-white border-l border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Admin Controls
-        </h2>
+      {!isIslandWide && (
+        <div className="w-64 p-6 bg-white border-l border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Admin Controls
+          </h2>
 
-        {/* Vote Management */}
-        <form onSubmit={handleVoteSubmit} className="mb-6">
-          <h3 className="text-sm font-medium text-gray-800 mb-2">Votes</h3>
+          {/* Vote Management */}
+          <form onSubmit={handleVoteSubmit} className="mb-6">
+            <h3 className="text-sm font-medium text-gray-800 mb-2">Votes</h3>
 
-          {voteFormError && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-              {voteFormError}
-            </div>
-          )}
+            {voteFormError && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+                {voteFormError}
+              </div>
+            )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">
-                Total Votes
-              </label>
-              <input
-                type="number"
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                value={voteFormData.totalVotes}
-                onChange={(e) =>
-                  setVoteFormData((prev) => ({
-                    ...prev,
-                    totalVotes: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Total Votes
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  value={voteFormData.totalVotes}
+                  onChange={(e) =>
+                    setVoteFormData((prev) => ({
+                      ...prev,
+                      totalVotes: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Rejected Votes
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={voteFormData.totalVotes}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  value={voteFormData.rejectedVotes}
+                  onChange={(e) =>
+                    setVoteFormData((prev) => ({
+                      ...prev,
+                      rejectedVotes: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+              >
+                Update Votes
+              </button>
             </div>
-            <div>
-              <label className="block text-sm text-gray-700 mb-1">
-                Rejected Votes
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={voteFormData.totalVotes}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                value={voteFormData.rejectedVotes}
-                onChange={(e) =>
-                  setVoteFormData((prev) => ({
-                    ...prev,
-                    rejectedVotes: parseInt(e.target.value) || 0,
-                  }))
-                }
-              />
-            </div>
+          </form>
+
+          {/* Party Management */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-800 mb-2">Parties</h3>
             <button
-              type="submit"
+              onClick={() => setShowAddVotesModal(true)}
               className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
             >
-              Update Votes
+              Add Votes
             </button>
           </div>
-        </form>
-
-        {/* Party Management */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-800 mb-2">Parties</h3>
-          <button
-            onClick={() => setShowPartyForm(true)}
-            className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
-          >
-            Add New Party
-          </button>
         </div>
-      </div>
+      )}
 
-      {/* Party Form Modal */}
-      {showPartyForm && (
+      {/* Add Votes Modal */}
+      {showAddVotesModal && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full m-4 border-2 border-teal-800">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                Add New Party
+                Add Votes for Party
               </h3>
               <button
-                onClick={() => setShowPartyForm(false)}
+                onClick={() => {
+                  setShowAddVotesModal(false);
+                  setAddVotesPartyId("");
+                  setAddVotesValue("");
+                  setAddVotesError(null);
+                  setAddVotesSuccess(null);
+                }}
                 className="text-gray-400 hover:text-gray-500"
               >
                 <X size={20} />
               </button>
             </div>
-
-            {partyFormError && (
+            {addVotesError && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-                {partyFormError}
+                {addVotesError}
               </div>
             )}
-
-            <form onSubmit={handlePartySubmit}>
+            {addVotesSuccess && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md text-sm">
+                {addVotesSuccess}
+              </div>
+            )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setAddVotesError(null);
+                setAddVotesSuccess(null);
+                if (!addVotesPartyId) {
+                  setAddVotesError("Please select a party");
+                  return;
+                }
+                if (
+                  addVotesValue === "" ||
+                  isNaN(Number(addVotesValue)) ||
+                  Number(addVotesValue) < 0
+                ) {
+                  setAddVotesError("Please enter a valid vote count");
+                  return;
+                }
+                const party = districtParties.find(
+                  (p) => p.id === addVotesPartyId
+                );
+                if (!party) {
+                  setAddVotesError("Party not found");
+                  return;
+                }
+                // Calculate the sum of all other parties' votes in this district
+                const otherVotesSum = districtParties
+                  .filter((p) => p.id !== addVotesPartyId)
+                  .reduce((sum, p) => sum + p.votes, 0);
+                const newVotes = Number(addVotesValue);
+                const totalVotesAfter = otherVotesSum + newVotes;
+                if (
+                  selectedDistrict &&
+                  totalVotesAfter > selectedDistrict.validVotes
+                ) {
+                  setAddVotesError(
+                    `Total party votes (${totalVotesAfter}) cannot exceed valid votes (${selectedDistrict.validVotes}) for this district.`
+                  );
+                  return;
+                }
+                updateParty({ ...party, votes: newVotes });
+                setAddVotesSuccess("Votes updated for " + party.name);
+                setAddVotesValue("");
+                setAddVotesPartyId("");
+                setTimeout(() => {
+                  setAddVotesSuccess(null);
+                  setShowAddVotesModal(false);
+                }, 1000);
+              }}
+            >
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Party Name
+                    Select Party
                   </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    value={partyFormData.name}
-                    onChange={(e) =>
-                      setPartyFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    value={addVotesPartyId}
+                    onChange={(e) => setAddVotesPartyId(e.target.value)}
                     required
-                  />
+                  >
+                    <option value="">Select Party</option>
+                    {districtParties.map((party) => (
+                      <option key={party.id} value={party.id}>
+                        {party.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Votes
                   </label>
                   <input
                     type="number"
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    value={partyFormData.votes}
-                    onChange={(e) =>
-                      setPartyFormData((prev) => ({
-                        ...prev,
-                        votes: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter vote count"
+                    min={0}
+                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    placeholder="Votes"
+                    value={addVotesValue}
+                    onChange={(e) => setAddVotesValue(e.target.value)}
                     required
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Logo File
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="file"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-                      accept="image/*"
-                      onChange={handleLogoFileChange}
-                      required
-                    />
-                    {partyFormData.logoData && (
-                      <img
-                        src={partyFormData.logoData}
-                        alt="Logo preview"
-                        className="w-10 h-10 object-contain border border-gray-200 rounded"
-                      />
-                    )}
-                  </div>
-                </div>
-
                 <div className="flex gap-2 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowPartyForm(false)}
+                    onClick={() => {
+                      setShowAddVotesModal(false);
+                      setAddVotesPartyId("");
+                      setAddVotesValue("");
+                      setAddVotesError(null);
+                      setAddVotesSuccess(null);
+                    }}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
                   >
                     Cancel
@@ -477,11 +593,26 @@ const Results: React.FC = () => {
                     type="submit"
                     className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
                   >
-                    Add Party
+                    Add/Update Votes
                   </button>
                 </div>
               </div>
             </form>
+            {/* Show current sum of party votes and valid votes */}
+            {selectedDistrict && (
+              <div className="mt-4 text-sm text-gray-700">
+                Total party votes (after update):{" "}
+                {(() => {
+                  const otherVotesSum = districtParties
+                    .filter((p) => p.id !== addVotesPartyId)
+                    .reduce((sum, p) => sum + p.votes, 0);
+                  const newVotes =
+                    addVotesValue === "" ? 0 : Number(addVotesValue);
+                  return otherVotesSum + newVotes;
+                })()}{" "}
+                / {selectedDistrict.validVotes} (valid votes)
+              </div>
+            )}
           </div>
         </div>
       )}

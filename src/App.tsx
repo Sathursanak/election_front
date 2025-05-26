@@ -10,6 +10,8 @@ import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { ElectionDataProvider } from "./context/ElectionDataContext";
 
+const SettingsLazy = React.lazy(() => import("./pages/Settings"));
+
 function App() {
   return (
     <Router>
@@ -21,6 +23,14 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/results" element={<Results />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route
+                path="/settings"
+                element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <SettingsLazy />
+                  </React.Suspense>
+                }
+              />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />

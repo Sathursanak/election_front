@@ -21,6 +21,23 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Automatically expand provinces that have matching districts in search
+  React.useEffect(() => {
+    if (searchQuery.trim() === "") return;
+    const expanded: Record<string, boolean> = { ...expandedProvinces };
+    provinces.forEach((province) => {
+      const hasMatch = districts.some(
+        (d) =>
+          d.province === province.id &&
+          d.id !== "all-districts" &&
+          d.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      expanded[province.id] = hasMatch;
+    });
+    setExpandedProvinces(expanded);
+    // eslint-disable-next-line
+  }, [searchQuery]);
+
   const toggleProvince = (provinceId: string) => {
     setExpandedProvinces((prev) => ({
       ...prev,
@@ -119,6 +136,23 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
         </div>
 
         <div className="p-4">
+          {/* Island-wide Results Button */}
+          <button
+            className={`w-full mb-4 px-3 py-2 rounded-md font-bold text-left transition border-2 border-teal-800
+              ${
+                selectedDistrictId === "all-districts"
+                  ? "bg-teal-800 text-white shadow"
+                  : "bg-white text-teal-800 hover:bg-teal-50"
+              }
+            `}
+            onClick={() => {
+              handleDistrictSelect("all-districts");
+            }}
+            aria-label="View island-wide results"
+          >
+            🏝️ Island-wide Results
+          </button>
+
           <h2 className="font-bold text-lg text-teal-800 mb-4 hidden md:block">
             Electoral Districts
           </h2>

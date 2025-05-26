@@ -16,11 +16,15 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [partyToDelete, setPartyToDelete] = useState<Party | null>(null);
 
-  // Filter parties based on selected district
-  const filteredParties =
-    selectedDistrictId === "all-districts"
-      ? parties
-      : parties.filter((party) => party.districtId === selectedDistrictId);
+  // Always show all registered parties for the selected district, even if votes are 0
+  let filteredParties: Party[] = [];
+  if (selectedDistrictId === "all-districts") {
+    filteredParties = parties;
+  } else {
+    filteredParties = parties.filter(
+      (party) => party.districtId === selectedDistrictId
+    );
+  }
 
   const sortedParties = [...filteredParties].sort((a, b) => b.votes - a.votes);
 
@@ -33,25 +37,6 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
   const handleDelete = (party: Party) => {
     setPartyToDelete(party);
     setDeleteModalOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (partyToDelete) {
-      deleteParty(partyToDelete.id);
-      setDeleteModalOpen(false);
-      setPartyToDelete(null);
-    }
-  };
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingParty) {
-      updateParty({
-        ...editingParty,
-        votes: Number(editingParty.votes),
-      });
-      setEditingParty(null);
-    }
   };
 
   const toBase64 = (file: File): Promise<string> =>
@@ -106,135 +91,20 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
               <PartyCard
                 key={party.id}
                 party={party}
-                onEdit={() => handleEdit(party)}
-                onDelete={() => handleDelete(party)}
+                // Remove edit/delete for cards
+                onEdit={undefined}
+                onDelete={undefined}
               />
             ))}
           </div>
         ) : (
           <PartyTable
             parties={sortedParties}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
+            // Remove edit/delete for table
+            onEdit={undefined}
+            onDelete={undefined}
+            selectedDistrict={selectedDistrict}
           />
-        )}
-
-        {/* Edit Modal */}
-        {editingParty && (
-          <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Edit Party
-              </h3>
-              <form onSubmit={handleEditSubmit} className="space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Party Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editingParty.name}
-                      onChange={(e) =>
-                        setEditingParty({
-                          ...editingParty,
-                          name: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Votes
-                    </label>
-                    <input
-                      type="number"
-                      value={editingParty.votes}
-                      onChange={(e) =>
-                        setEditingParty({
-                          ...editingParty,
-                          votes: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Logo File
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          const dataUrl = await toBase64(file);
-                          setEditingParty({
-                            ...editingParty,
-                            logoData: dataUrl,
-                          });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-                    />
-                    {editingParty.logoData && (
-                      <img
-                        src={editingParty.logoData}
-                        alt="Logo preview"
-                        className="w-10 h-10 object-contain border border-gray-200 rounded"
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setEditingParty(null)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-md transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {deleteModalOpen && (
-          <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md border-2 border-teal-800">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Delete Party
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete {partyToDelete?.name}? This
-                action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setDeleteModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-800 rounded-md transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
 
@@ -251,11 +121,11 @@ const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
 
 interface PartyCardProps {
   party: Party;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
+const PartyCard: React.FC<PartyCardProps> = ({ party }) => {
   // Determine if this party is the bonus seat party (highest votes in its district)
   // We'll use the same logic as the table: highest votes among all parties in the same district
   const { parties } = useElectionData();
@@ -285,22 +155,7 @@ const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
               )}
             </div>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={onEdit}
-              className="p-1 text-gray-600 hover:text-gray-800 transition-colors"
-              title="Edit party"
-            >
-              <Edit2 size={16} />
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-1 text-red-700 hover:text-red-800 transition-colors"
-              title="Delete party"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
+          {/* Removed edit/delete buttons from cards */}
         </div>
 
         <div className="space-y-2">
@@ -324,18 +179,16 @@ const PartyCard: React.FC<PartyCardProps> = ({ party, onEdit, onDelete }) => {
 
 interface PartyTableProps {
   parties: Party[];
-  onEdit: (party: Party) => void;
-  onDelete: (party: Party) => void;
+  onEdit?: (party: Party) => void;
+  onDelete?: (party: Party) => void;
+  selectedDistrict?: any;
 }
 
-const PartyTable: React.FC<PartyTableProps> = ({
-  parties,
-  onEdit,
-  onDelete,
-}) => {
+const PartyTable: React.FC<PartyTableProps> = ({ parties }) => {
+  // Check if all parties have votes > 0
+  const allHaveVotes = parties.length > 0 && parties.every((p) => p.votes > 0);
+
   // Find the bonus seat party id for the current district (if any)
-  // This assumes PartyResults is only used for a single district at a time
-  // Find the party (or parties) with the highest votes for bonus seat logic
   const maxVotes = Math.max(...parties.map((p) => p.votes));
   const bonusSeatPartyIds = parties
     .filter((p) => p.votes === maxVotes && maxVotes > 0)
@@ -385,12 +238,6 @@ const PartyTable: React.FC<PartyTableProps> = ({
             >
               Bonus Seat
             </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-            >
-              Actions
-            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -420,48 +267,40 @@ const PartyTable: React.FC<PartyTableProps> = ({
                   {party.votes.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {qualified ? (
-                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                      Qualified
-                    </span>
+                  {allHaveVotes ? (
+                    qualified ? (
+                      <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Qualified
+                      </span>
+                    ) : (
+                      <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                        Disqualified
+                      </span>
+                    )
                   ) : (
-                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                      Disqualified
+                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      Active Counting
                     </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {party.percentage?.toFixed(1)}%
+                  {allHaveVotes ? `${party.percentage?.toFixed(1) ?? 0}%` : "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {party.seats}
+                  {allHaveVotes ? party.seats : "Active Counting"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {isBonusSeat ? (
-                    <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                      Yes
-                    </span>
+                  {allHaveVotes ? (
+                    isBonusSeat ? (
+                      <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Yes
+                      </span>
+                    ) : (
+                      <span className="text-gray-700">No</span>
+                    )
                   ) : (
-                    <span className="text-gray-700">No</span>
+                    <span className="text-gray-700">-</span>
                   )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => onEdit(party)}
-                      className="text-gray-600 hover:text-gray-800 transition-colors"
-                      title="Edit party"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(party)}
-                      className="text-red-700 hover:text-red-800 transition-colors"
-                      title="Delete party"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
                 </td>
               </tr>
             );
