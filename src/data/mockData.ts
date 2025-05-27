@@ -210,7 +210,7 @@ export const initialDistricts: District[] = [
     totalVotes: 380000,
     rejectedVotes: 7600,
     validVotes: 372400,
-    seats: 15,
+    seats: 11,
     bonusSeats: 1,
     bonusSeatPartyId: null
   },
@@ -304,40 +304,7 @@ export const initialDistricts: District[] = [
   }
 ];
 
-export const initialParties: Party[] = [
-  // Colombo district parties
-  {
-    id: 'unp-colombo',
-    name: 'United National Party',
-    votes: 200000,
-    logoUrl: 'https://via.placeholder.com/50?text=UNP',
-    districtId: 'colombo',
-    percentage: 40,
-    seats: 10,
-    hasBonusSeat: true
-  },
-  {
-    id: 'slpp-colombo',
-    name: 'Sri Lanka Podujana Peramuna',
-    votes: 150000,
-    logoUrl: 'https://via.placeholder.com/50?text=SLPP',
-    districtId: 'colombo',
-    percentage: 30,
-    seats: 7,
-    hasBonusSeat: false
-  },
-  {
-    id: 'jvp-colombo',
-    name: 'Janatha Vimukthi Peramuna',
-    votes: 100000,
-    logoUrl: 'https://via.placeholder.com/50?text=JVP',
-    districtId: 'colombo',
-    percentage: 20,
-    seats: 5,
-    hasBonusSeat: false
-  }
-  // Additional parties for other districts would be added here
-];
+export const initialParties: Party[] = [];
 
 export const electionStats: ElectionStats = {
   totalVotes: 12345678,

@@ -9,7 +9,7 @@ interface PartyResultsProps {
 }
 
 const PartyResults: React.FC<PartyResultsProps> = ({ parties }) => {
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
   const { selectedDistrictId, updateParty, deleteParty, districts } =
     useElectionData();
   const [editingParty, setEditingParty] = useState<Party | null>(null);
@@ -184,7 +184,7 @@ interface PartyTableProps {
   selectedDistrict?: any;
 }
 
-const PartyTable: React.FC<PartyTableProps> = ({ parties }) => {
+const PartyTable: React.FC<PartyTableProps> = ({ parties, selectedDistrict }) => {
   // Check if all parties have votes > 0
   const allHaveVotes = parties.length > 0 && parties.every((p) => p.votes > 0);
 
@@ -230,13 +230,19 @@ const PartyTable: React.FC<PartyTableProps> = ({ parties }) => {
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
-              Seats
+              1st Round
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
             >
-              Bonus Seat
+              2nd Round
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
+            >
+              Total Seats
             </th>
           </tr>
         </thead>
@@ -244,6 +250,19 @@ const PartyTable: React.FC<PartyTableProps> = ({ parties }) => {
           {parties.map((party) => {
             const qualified = party.votes >= minVotesToQualify;
             const isBonusSeat = bonusSeatPartyIds.includes(party.id);
+            
+            // Calculate first round seats
+            const votesPerSeat = Math.floor(totalValidVotes / (selectedDistrict?.seats || 1));
+            let firstRoundSeats = 0;
+            let remainingVotes = party.votes;
+            while (remainingVotes >= votesPerSeat) {
+              firstRoundSeats++;
+              remainingVotes -= votesPerSeat;
+            }
+            
+            // Calculate second round seats
+            const secondRoundSeats = (party.seats || 0) - firstRoundSeats;
+
             return (
               <tr
                 key={party.id}
@@ -287,20 +306,13 @@ const PartyTable: React.FC<PartyTableProps> = ({ parties }) => {
                   {allHaveVotes ? `${party.percentage?.toFixed(1) ?? 0}%` : "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {allHaveVotes ? party.seats : "Active Counting"}
+                  {allHaveVotes ? firstRoundSeats : "-"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {allHaveVotes ? (
-                    isBonusSeat ? (
-                      <span className="px-2 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Yes
-                      </span>
-                    ) : (
-                      <span className="text-gray-700">No</span>
-                    )
-                  ) : (
-                    <span className="text-gray-700">-</span>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {allHaveVotes ? secondRoundSeats : "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {allHaveVotes ? party.seats : "Active Counting"}
                 </td>
               </tr>
             );

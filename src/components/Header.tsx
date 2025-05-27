@@ -31,7 +31,6 @@ const Header: React.FC = () => {
               src="https://www.pngmart.com/files/22/Sri-Lanka-Flag-PNG-Photo.png"
               alt="Sri Lanka Emblem"
               className="h-8 w-8 "
-        
             />
             <span className="font-bold text-xl md:text-2xl">
               SL Election Commission
@@ -43,12 +42,13 @@ const Header: React.FC = () => {
             <NavLink to="/" isActive={isActiveLink("/")}>
               Home
             </NavLink>
-            <NavLink to="/results" isActive={isActiveLink("/results")}>
-              Results
-            </NavLink>
             <NavLink to="/admin" isActive={isActiveLink("/admin")}>
               Admin Panel
             </NavLink>
+            <NavLink to="/results" isActive={isActiveLink("/results")}>
+              Results
+            </NavLink>
+            
             <NavLink to="/about" isActive={isActiveLink("/about")}>
               About
             </NavLink>

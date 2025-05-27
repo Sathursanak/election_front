@@ -1,10 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useElectionData } from "../context/ElectionDataContext";
+import SriLankaMap from "../components/SriLankaMap";
 // import HomeHeroSlider from "../components/HomeHeroSlider";
 
 const Home: React.FC = () => {
-  const { electionStats } = useElectionData();
+  const { electionStats, year } = useElectionData();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -17,7 +18,7 @@ const Home: React.FC = () => {
         />
         <div className="absolute inset-0 bg-black bg-opacity-40 z-10 flex flex-col items-center justify-center">
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white text-center drop-shadow-lg px-4 ">
-            Sri Lanka Parliamentary Election 2025 Results
+            Sri Lanka Parliamentary Election {year} Results
           </h1>
           <div className="absolute bottom-8 right-8 z-20">
             <Link
@@ -65,6 +66,8 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+     
+
       {/* Quick Access Section */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
@@ -107,7 +110,7 @@ const Home: React.FC = () => {
                 About the Election
               </h3>
               <p className="text-gray-700">
-                Learn about the Sri Lanka Parliamentary Election 2025, voting
+                Learn about the Sri Lanka Parliamentary Election, voting
                 process, and seat allocation methodology.
               </p>
             </Link>

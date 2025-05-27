@@ -1,3 +1,12 @@
+// Delete a district (backend-ready)
+const deleteDistrict = async (districtId: string) => {
+  // Delete from backend or mock
+  await dataService.deleteDistrict(districtId);
+  setDistricts((prev) => prev.filter((d) => d.id !== districtId));
+  // Optionally, remove parties in this district as well
+  setParties((prev) => prev.filter((p) => p.districtId !== districtId));
+  updateElectionStats();
+};
 import React, {
   createContext,
   useContext,
@@ -5,17 +14,20 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import {
-  initialDistricts,
-  initialParties,
-  electionStats as initialStats,
-} from "../data/mockData";
+import { dataService } from "../utils/dataService";
 import { District, Party, ElectionStats, DistrictVote } from "../types";
+import { sampleElectionData } from '../data/sampleElectionData';
 
 interface ElectionDataContextType {
+  electionData: any[];
+  electionStats: {
+    totalVotes: number;
+    totalSeats: number;
+  };
+  year: number;
+  setYear: (year: number) => void;
   districts: District[];
   parties: Party[];
-  electionStats: ElectionStats;
   selectedDistrictId: string;
   setSelectedDistrictId: (id: string) => void;
   addParty: (
@@ -25,59 +37,73 @@ interface ElectionDataContextType {
   deleteParty: (id: string) => void;
   updateDistrictVotes: (districtVote: DistrictVote) => void;
   deleteDistrictVotes: (districtId: string) => void;
+  deleteDistrict: (districtId: string) => void;
+  districtNominations: { [districtId: string]: string[] };
+  setDistrictNominations: (districtId: string, partyIds: string[]) => void;
+  updateSettings: (settings: {
+    districts: District[];
+    totalSeats: number;
+  }) => void;
+  updatePartyVotes: (
+    partyId: string,
+    districtId: string,
+    votes: number
+  ) => void;
 }
 
-// Add updateSettings to context for Settings page
-const ElectionDataContext = createContext<
-  | (ElectionDataContextType & {
-      updateSettings?: (settings: {
-        districts: District[];
-        totalSeats: number;
-      }) => void;
-    })
-  | undefined
->(undefined);
+const ElectionDataContext = createContext<ElectionDataContextType | undefined>(
+  undefined
+);
 
 export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  // Update districts and totalSeats from Settings page
-  const updateSettings = (settings: {
+  const [electionData] = useState(sampleElectionData);
+  const [year, setYear] = useState(2025);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
+  const [electionStats, setElectionStats] = useState<ElectionStats>({
+    totalVotes: 0,
+    totalSeats: 0,
+    participatingParties: 0,
+  });
+  const [selectedDistrictId, setSelectedDistrictId] =
+    useState<string>("all-districts");
+  const [districtNominations, setDistrictNominationsState] = useState<{
+    [districtId: string]: string[];
+  }>({});
+
+  // (Removed localStorage for year, use state only)
+
+  // Update settings and ensure total seats consistency (backend-ready)
+  const updateSettings = async (settings: {
     districts: District[];
     totalSeats: number;
   }) => {
-    setDistricts(settings.districts);
-    // Always recalculate totalSeats as sum of all district seats
-    const totalSeats = settings.districts.reduce(
-      (sum, d) => sum + (d.id !== "all-districts" ? d.seats : 0),
-      0
+    // Save all districts to backend or mock
+    const savedDistricts = await Promise.all(
+      settings.districts.map(async (district) => {
+        // If district exists, update; else, add
+        const exists = districts.find((d) => d.id === district.id);
+        if (exists) {
+          return await dataService.updateDistrict(district);
+        } else {
+          return await dataService.addDistrict(district);
+        }
+      })
     );
-    setElectionStats((prev) => ({ ...prev, totalSeats }));
+    setDistricts(savedDistricts);
+    setElectionStats((prev) => ({ ...prev, totalSeats: settings.totalSeats }));
   };
-  const [districts, setDistricts] = useState<District[]>(initialDistricts);
-  const [parties, setParties] = useState<Party[]>(initialParties);
-  const [electionStats, setElectionStats] =
-    useState<ElectionStats>(initialStats);
-  const [selectedDistrictId, setSelectedDistrictId] =
-    useState<string>("colombo");
 
-  // Load data from localStorage on initial render
+  // Load data from backend or mock on initial render
   useEffect(() => {
-    const storedDistricts = localStorage.getItem("districts");
-    const storedParties = localStorage.getItem("parties");
-    const storedStats = localStorage.getItem("electionStats");
-
-    if (storedDistricts) setDistricts(JSON.parse(storedDistricts));
-    if (storedParties) setParties(JSON.parse(storedParties));
-    if (storedStats) setElectionStats(JSON.parse(storedStats));
+    dataService.getDistricts().then(setDistricts);
+    dataService.getParties().then(setParties);
+    dataService.getElectionStats().then(setElectionStats);
   }, []);
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("districts", JSON.stringify(districts));
-    localStorage.setItem("parties", JSON.stringify(parties));
-    localStorage.setItem("electionStats", JSON.stringify(electionStats));
-  }, [districts, parties, electionStats]);
+  // (Removed localStorage for district nominations, use state only)
 
   // Calculate party percentages, seats, and bonus seats
   const calculatePartyStats = (party: Party, district: District): Party => {
@@ -107,14 +133,13 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     return highestVotesParty.id;
   };
 
-  // Add a new party
-  const addParty = (
+  // Add a new party (backend-ready)
+  const addParty = async (
     partyData: Omit<Party, "id" | "percentage" | "seats" | "hasBonusSeat">
   ) => {
     const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${
       partyData.districtId
     }`;
-
     const district = districts.find((d) => d.id === partyData.districtId);
     if (!district) return;
 
@@ -126,30 +151,33 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       hasBonusSeat: false,
     };
 
+    // Save to backend or mock
+    const savedParty = await dataService.addParty(newParty);
+
     // Calculate stats for the new party
-    const partyWithStats = calculatePartyStats(newParty, district);
+    const partyWithStats = calculatePartyStats(savedParty, district);
 
     setParties((prev) => [...prev, partyWithStats]);
 
     // Update district's bonus seat party if this party has the highest votes
     const bonusSeatPartyId = determineBonusSeatParty(partyData.districtId);
-
     setDistricts((prev) =>
       prev.map((d) =>
         d.id === partyData.districtId ? { ...d, bonusSeatPartyId } : d
       )
     );
-
-    // Update election stats
     updateElectionStats();
   };
 
-  // Update an existing party
-  const updateParty = (updatedParty: Party) => {
+  // Update an existing party (backend-ready)
+  const updateParty = async (updatedParty: Party) => {
     const district = districts.find((d) => d.id === updatedParty.districtId);
     if (!district) return;
 
-    const partyWithStats = calculatePartyStats(updatedParty, district);
+    // Save to backend or mock
+    const savedParty = await dataService.updateParty(updatedParty);
+
+    const partyWithStats = calculatePartyStats(savedParty, district);
 
     setParties((prev) =>
       prev.map((p) => (p.id === updatedParty.id ? partyWithStats : p))
@@ -157,33 +185,30 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
 
     // Recalculate bonus seat party
     const bonusSeatPartyId = determineBonusSeatParty(updatedParty.districtId);
-
     setDistricts((prev) =>
       prev.map((d) =>
         d.id === updatedParty.districtId ? { ...d, bonusSeatPartyId } : d
       )
     );
-
-    // Update election stats
     updateElectionStats();
   };
 
-  // Delete a party
-  const deleteParty = (id: string) => {
+  // Delete a party (backend-ready)
+  const deleteParty = async (id: string) => {
     const partyToDelete = parties.find((p) => p.id === id);
     if (!partyToDelete) return;
+
+    // Delete from backend or mock
+    await dataService.deleteParty(id);
 
     setParties((prev) => prev.filter((p) => p.id !== id));
 
     // Recalculate bonus seat party
     const districtId = partyToDelete.districtId;
     const bonusSeatPartyId = determineBonusSeatParty(districtId);
-
     setDistricts((prev) =>
       prev.map((d) => (d.id === districtId ? { ...d, bonusSeatPartyId } : d))
     );
-
-    // Update election stats
     updateElectionStats();
   };
 
@@ -265,27 +290,48 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       0
     );
 
-    // Always recalculate totalSeats as sum of all district seats
-    const totalSeats = districts.reduce(
-      (sum, district) =>
-        district.id !== "all-districts" ? sum + district.seats : sum,
-      0
-    );
-
     const uniquePartyNames = new Set(parties.map((party) => party.name));
     const participatingParties = uniquePartyNames.size;
 
-    setElectionStats({
+    setElectionStats((prev) => ({
+      ...prev,
       totalVotes,
-      totalSeats,
       participatingParties,
-    });
+      totalSeats: 225, // Always maintain the default value
+    }));
+  };
+
+  const setDistrictNominations = (districtId: string, partyIds: string[]) => {
+    setDistrictNominationsState((prev) => ({
+      ...prev,
+      [districtId]: partyIds,
+    }));
+  };
+
+  // Update party votes
+  const updatePartyVotes = (
+    partyId: string,
+    districtId: string,
+    votes: number
+  ) => {
+    const party = parties.find((p) => p.id === partyId);
+    if (!party) return;
+
+    const updatedParty = {
+      ...party,
+      votes,
+    };
+
+    updateParty(updatedParty);
   };
 
   const value = {
+    electionData,
+    electionStats,
+    year,
+    setYear,
     districts,
     parties,
-    electionStats,
     selectedDistrictId,
     setSelectedDistrictId,
     addParty,
@@ -293,7 +339,11 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     deleteParty,
     updateDistrictVotes,
     deleteDistrictVotes,
+    deleteDistrict,
     updateSettings,
+    districtNominations,
+    setDistrictNominations,
+    updatePartyVotes,
   };
 
   return (

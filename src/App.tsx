@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -10,9 +10,18 @@ import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { ElectionDataProvider } from "./context/ElectionDataContext";
 
-const SettingsLazy = React.lazy(() => import("./pages/Settings"));
-
 function App() {
+  // Set default states on first load
+  useEffect(() => {
+    // Only set defaults if they don't exist
+    if (!localStorage.getItem('selectedDistrictId')) {
+      localStorage.setItem('selectedDistrictId', 'all-districts');
+    }
+    if (!localStorage.getItem('adminPanelStep')) {
+      localStorage.setItem('adminPanelStep', '1');
+    }
+  }, []);
+
   return (
     <Router>
       <ElectionDataProvider>
@@ -23,17 +32,10 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/results" element={<Results />} />
               <Route path="/admin" element={<AdminPanel />} />
-              <Route
-                path="/settings"
-                element={
-                  <React.Suspense fallback={<div>Loading...</div>}>
-                    <SettingsLazy />
-                  </React.Suspense>
-                }
-              />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
           <Footer />

@@ -1,6 +1,9 @@
 import React from "react";
+import { useElectionData } from "../context/ElectionDataContext";
 
 const Footer: React.FC = () => {
+  const { year } = useElectionData();
+
   return (
     <footer className="bg-teal-950 text-white py-8">
       <div className="container mx-auto px-4">
@@ -25,7 +28,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400 text-sm">
-          <p>© 2025 Election Commission of Sri Lanka. All rights reserved.</p>
+          <p>© {year} Election Commission of Sri Lanka. All rights reserved.</p>
         </div>
       </div>
     </footer>

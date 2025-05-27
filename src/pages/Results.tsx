@@ -86,8 +86,28 @@ const Results: React.FC = () => {
     addParty,
     updateDistrictVotes,
     updateParty,
-    electionStats, // <-- already present
+    electionStats,
+    year,
+    districtNominations,
   } = useElectionData();
+
+  // Load saved district on mount
+  useEffect(() => {
+    const savedDistrictId = localStorage.getItem("selectedDistrictId");
+    if (savedDistrictId) {
+      setSelectedDistrictId(savedDistrictId);
+    } else {
+      setSelectedDistrictId("all-districts");
+      localStorage.setItem("selectedDistrictId", "all-districts");
+    }
+  }, []); // Only run on mount
+
+  // Save selected district whenever it changes
+  useEffect(() => {
+    if (selectedDistrictId) {
+      localStorage.setItem("selectedDistrictId", selectedDistrictId);
+    }
+  }, [selectedDistrictId]);
 
   const [showPartyForm, setShowPartyForm] = useState(false);
   const [partyFormData, setPartyFormData] = useState<PartyFormData>({
@@ -109,14 +129,6 @@ const Results: React.FC = () => {
   const [addVotesError, setAddVotesError] = useState<string | null>(null);
   const [addVotesSuccess, setAddVotesSuccess] = useState<string | null>(null);
 
-  // Always show island-wide results by default on mount
-  useEffect(() => {
-    if (selectedDistrictId !== "all-districts") {
-      setSelectedDistrictId("all-districts");
-    }
-    // eslint-disable-next-line
-  }, []); // Only run on mount
-
   // Update vote form data when district changes
   useEffect(() => {
     const district = districts.find((d) => d.id === selectedDistrictId);
@@ -131,15 +143,27 @@ const Results: React.FC = () => {
   // If "all-districts" is selected, show island-wide result
   const isIslandWide = selectedDistrictId === "all-districts";
   let selectedDistrict = districts.find((d) => d.id === selectedDistrictId);
+
+  // Get assigned parties for the selected district
+  const assignedPartyIds = districtNominations[selectedDistrictId] || [];
   let selectedPartiesRaw = parties.filter(
-    (p) => p.districtId === selectedDistrictId
+    (p) =>
+      p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
   );
+
   let selectedParties = selectedPartiesRaw;
   let islandWideStats = null;
   if (isIslandWide) {
+    // For island-wide view, only include parties that are assigned to at least one district
+    const allAssignedPartyIds = new Set(
+      Object.values(districtNominations).flat()
+    );
+
     // Aggregate all parties by name (island-wide)
     const partyMap: Record<string, any> = {};
     parties.forEach((p) => {
+      if (!allAssignedPartyIds.has(p.id)) return; // Skip unassigned parties
+
       const key = p.name.trim().toLowerCase();
       if (!partyMap[key]) {
         partyMap[key] = { ...p, votes: 0, seats: 0, districts: new Set() };
@@ -148,6 +172,7 @@ const Results: React.FC = () => {
       partyMap[key].seats += p.seats || 0;
       partyMap[key].districts.add(p.districtId);
     });
+
     // Use the total seats from settings for island-wide
     const allSeats = electionStats.totalSeats;
     const allParties = Object.values(partyMap).map((p: any) => ({
@@ -157,11 +182,15 @@ const Results: React.FC = () => {
     const allocated = allocateSeats(allParties, allSeats);
     selectedParties = allocated;
     selectedPartiesRaw = allParties;
+    // Sum validVotes from all districts except 'all-districts'
+    const totalValidVotes = districts
+      .filter((d) => d.id !== "all-districts")
+      .reduce((sum, d) => sum + d.validVotes, 0);
     selectedDistrict = {
       id: "all-districts",
       name: "Island-wide",
       seats: allSeats,
-      validVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
+      validVotes: totalValidVotes,
       totalVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
       rejectedVotes: 0,
       province: "All",
@@ -180,15 +209,35 @@ const Results: React.FC = () => {
     selectedDistrict =
       districts.find((d) => d.id === selectedDistrictId) || districts[0];
     selectedPartiesRaw = parties.filter(
-      (p) => p.districtId === selectedDistrictId
+      (p) =>
+        p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
     );
     selectedParties = allocateSeats(selectedPartiesRaw, selectedDistrict.seats);
   }
 
-  // Only show parties in the current district
+  // Only show assigned parties in the current district
   const districtParties = !isIslandWide
-    ? parties.filter((p) => p.districtId === selectedDistrictId)
+    ? parties.filter(
+        (p) =>
+          p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
+      )
     : [];
+
+  // Calculate bonus seat party for the district
+  const calculateBonusSeatParty = (districtId: string) => {
+    const districtParties = parties.filter(
+      (p) => p.districtId === districtId && assignedPartyIds.includes(p.id)
+    );
+
+    if (districtParties.length === 0) return null;
+
+    // Find the party with the highest votes
+    const highestVotesParty = districtParties.reduce((prev, curr) =>
+      curr.votes > prev.votes ? curr : prev
+    );
+
+    return highestVotesParty;
+  };
 
   const handlePartySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,7 +364,7 @@ const Results: React.FC = () => {
               ? "Island-wide Results"
               : `${selectedDistrict.name} District Results`}
           </h1>
-          <p className="text-gray-600">Parliamentary Election 2025</p>
+          <p className="text-gray-600">Parliamentary Election {year}</p>
         </header>
 
         {successMessage && (
@@ -325,7 +374,7 @@ const Results: React.FC = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
             <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
             <p className="text-2xl font-bold text-gray-900">
@@ -346,14 +395,9 @@ const Results: React.FC = () => {
               {isIslandWide
                 ? islandWideStats?.leadingParty?.name || "Not Assigned"
                 : (() => {
-                    const districtParties = parties.filter(
-                      (p) => p.districtId === selectedDistrict.id
-                    );
-                    if (districtParties.length === 0) return "Not Assigned";
-                    const bonusParty = districtParties.reduce((prev, curr) =>
-                      curr.votes > prev.votes ? curr : prev
-                    );
-                    return bonusParty.name;
+                    const bonusParty =
+                      calculateBonusSeatParty(selectedDistrictId);
+                    return bonusParty ? bonusParty.name : "Not Assigned";
                   })()}
             </p>
           </div>
