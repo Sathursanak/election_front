@@ -144,12 +144,29 @@ const Results: React.FC = () => {
   const isIslandWide = selectedDistrictId === "all-districts";
   let selectedDistrict = districts.find((d) => d.id === selectedDistrictId);
 
-  // Get assigned parties for the selected district
+  // Get assigned parties for the selected district (show all assigned, even if not yet created as Party objects)
   const assignedPartyIds = districtNominations[selectedDistrictId] || [];
-  let selectedPartiesRaw = parties.filter(
-    (p) =>
-      p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
-  );
+  // Helper: get party data by id (from all parties in the system, regardless of district)
+  const getPartyById = (id: string) => parties.find((p) => p.id === id);
+  // For each assigned party, get the Party object for this district, or create a placeholder with 0 votes
+  let selectedPartiesRaw = assignedPartyIds.map((partyId) => {
+    const party = parties.find(
+      (p) => p.id === partyId && p.districtId === selectedDistrictId
+    );
+    if (party) return party;
+    // Try to get party name/logo from any party with this id
+    const anyParty = getPartyById(partyId);
+    return {
+      id: partyId,
+      name: anyParty ? anyParty.name : partyId,
+      votes: 0,
+      logoData: anyParty ? anyParty.logoData : undefined,
+      districtId: selectedDistrictId,
+      percentage: 0,
+      seats: 0,
+      hasBonusSeat: false,
+    };
+  });
 
   let selectedParties = selectedPartiesRaw;
   let islandWideStats = null;
@@ -215,12 +232,26 @@ const Results: React.FC = () => {
     selectedParties = allocateSeats(selectedPartiesRaw, selectedDistrict.seats);
   }
 
-  // Only show assigned parties in the current district
+  // Only show assigned parties in the current district (for Add Votes modal dropdown)
   const districtParties = !isIslandWide
-    ? parties.filter(
-        (p) =>
-          p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
-      )
+    ? assignedPartyIds.map((partyId) => {
+        const party = parties.find(
+          (p) => p.id === partyId && p.districtId === selectedDistrictId
+        );
+        if (party) return party;
+        // Try to get party name/logo from any party with this id
+        const anyParty = getPartyById(partyId);
+        return {
+          id: partyId,
+          name: anyParty ? anyParty.name : partyId,
+          votes: 0,
+          logoData: anyParty ? anyParty.logoData : undefined,
+          districtId: selectedDistrictId,
+          percentage: 0,
+          seats: 0,
+          hasBonusSeat: false,
+        };
+      })
     : [];
 
   // Calculate bonus seat party for the district

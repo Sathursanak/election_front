@@ -9,26 +9,9 @@ import { Pie } from "react-chartjs-2";
 import { useElectionData } from "../context/ElectionDataContext";
 import { provinces as provinceList } from "../data/mockData";
 import { Party, District, Province } from "../types";
+import { getPartyColor } from "../utils/partyColors";
 
 ChartJS.register(ArcElement, Tooltip, ChartLegend);
-
-// Consistent color palette for parties
-const partyColors = [
-  "#1D3557", // Deep navy-teal (rich anchor color)
-  "#2A9D8F", // Your app's core teal (brand consistency)
-  "#A8DADC", // Light teal (soft contrast)
-  "#E9C46A", // Warm gold (complementary pop)
-  "#F4A261", // Muted coral (subtle warmth)
-  "#457B9D", // Steel blue-teal (harmonious mid-tone)
-  "#E76F51", // Burnt sienna (accent—use sparingly)
-  "#6A8EAE", // Dusty blue (neutral balance)
-  "#F1FAEE", // Off-white (high contrast for key data)
-  "#264653", // Dark teal-gray (deep tone for shadows)
-];
-
-function getPartyColor(index: number) {
-  return partyColors[index % partyColors.length];
-}
 
 function getInitials(name: string): string {
   return name
@@ -100,7 +83,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
           data: sorted.map((p) =>
             valueType === "votes" ? p.votes : p.seats || 0
           ),
-          backgroundColor: sorted.map((_, i) => getPartyColor(i)),
+          backgroundColor: sorted.map((p) => getPartyColor(p)),
           borderColor: "#fff",
           borderWidth: 2,
         },
@@ -114,17 +97,18 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
   }: {
     parties: (Party & { seats?: number })[];
   }) {
-    const sorted = [...parties].sort((a, b) => b.votes - a.votes);
+    // Show all parties in the same order everywhere
+    const sorted = [...parties].sort((a, b) => a.name.localeCompare(b.name));
     return (
       <div className="flex flex-wrap gap-4 mt-4">
-        {sorted.map((p, i) => (
+        {sorted.map((p) => (
           <div
             key={p.name}
             className="flex items-center space-x-2 text-sm bg-gray-50 px-2 py-1 rounded shadow-sm border border-gray-200"
           >
             <span
               className="inline-block w-4 h-4 rounded-full"
-              style={{ background: getPartyColor(i) }}
+              style={{ background: getPartyColor(p) }}
             />
             <span className="font-semibold text-gray-800">{p.name}</span>
             <span className="text-gray-500">
@@ -436,7 +420,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                           p.votes === maxVotes &&
                           maxVotes > 0
                       )
-                        ? getPartyColor(i)
+                        ? getPartyColor(party)
                         : "#e5e7eb"; // Tailwind gray-200
                     }),
                     borderColor: "#fff",
@@ -453,7 +437,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                   <div className="flex items-center gap-2 mb-2">
                     <span
                       className="inline-block w-4 h-4 rounded-full"
-                      style={{ background: getPartyColor(i) }}
+                      style={{ background: getPartyColor(party) }}
                     />
                     <span className="font-semibold text-lg">{party.name}</span>
                   </div>

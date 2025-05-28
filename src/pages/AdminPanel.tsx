@@ -1,278 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
-import { Party, DistrictVote, District } from "../types";
-import {
-  Edit2,
-  Trash2,
-  Settings as SettingsIcon,
-  CheckCircle2,
-  Circle,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Party, District } from "../types";
+import { Edit2, Trash2, CheckCircle2, Circle } from "lucide-react";
+// import { useNavigate } from "react-router-dom";
 import { initialDistricts } from "../data/mockData";
 import { provinces } from "../data/mockData";
-
-// Pre-configured districts data
-const defaultDistricts: District[] = [
-  {
-    id: "colombo",
-    name: "Colombo",
-    province: "Western",
-    seats: 22,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "gampaha",
-    name: "Gampaha",
-    province: "Western",
-    seats: 20,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "kalutara",
-    name: "Kalutara",
-    province: "Western",
-    seats: 15,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "kandy",
-    name: "Kandy",
-    province: "Central",
-    seats: 12,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "matale",
-    name: "Matale",
-    province: "Central",
-    seats: 8,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "nuwara-eliya",
-    name: "Nuwara Eliya",
-    province: "Central",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "galle",
-    name: "Galle",
-    province: "Southern",
-    seats: 10,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "matara",
-    name: "Matara",
-    province: "Southern",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "hambantota",
-    name: "Hambantota",
-    province: "Southern",
-    seats: 8,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "jaffna",
-    name: "Jaffna",
-    province: "Northern",
-    seats: 10,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "vanni",
-    name: "Vanni",
-    province: "Northern",
-    seats: 6,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "batticaloa",
-    name: "Batticaloa",
-    province: "Eastern",
-    seats: 8,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "ampara",
-    name: "Ampara (Digamadulla)",
-    province: "Eastern",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "trincomalee",
-    name: "Trincomalee",
-    province: "Eastern",
-    seats: 7,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "kurunegala",
-    name: "Kurunegala",
-    province: "North-Western",
-    seats: 15,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "puttalam",
-    name: "Puttalam",
-    province: "North-Western",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "anuradhapura",
-    name: "Anuradhapura",
-    province: "North-Central",
-    seats: 11,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "polonnaruwa",
-    name: "Polonnaruwa",
-    province: "North-Central",
-    seats: 8,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "badulla",
-    name: "Badulla",
-    province: "Uva",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "monaragala",
-    name: "Monaragala",
-    province: "Uva",
-    seats: 7,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "ratnapura",
-    name: "Ratnapura",
-    province: "Sabaragamuwa",
-    seats: 9,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-  {
-    id: "kegalle",
-    name: "Kegalle",
-    province: "Sabaragamuwa",
-    seats: 8,
-    totalVotes: 0,
-    rejectedVotes: 0,
-    validVotes: 0,
-    bonusSeats: 0,
-    bonusSeatPartyId: null,
-  },
-];
 
 const AdminPanel: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const savedStep = localStorage.getItem("adminPanelStep");
     return savedStep ? parseInt(savedStep) : 1;
   });
-  const {
-    year,
-    setYear,
-    districts,
-    parties,
-    districtNominations,
-    updateSettings,
-    electionStats,
-  } = useElectionData();
-  const navigate = useNavigate();
+  const { year, setYear, districts, updateSettings } = useElectionData();
 
   // Save current step to localStorage whenever it changes
   useEffect(() => {
@@ -288,7 +27,7 @@ const AdminPanel: React.FC = () => {
         totalSeats: 225,
       });
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, [districts.length, updateSettings]);
 
   // Check if each step is completed
   const isStepCompleted = {
@@ -493,7 +232,7 @@ const commonStyles = {
 
 // Manage Districts Component (Step 1)
 const ManageDistricts: React.FC = () => {
-  const { districts, updateSettings, electionStats } = useElectionData();
+  const { districts, updateSettings } = useElectionData();
   const [formData, setFormData] = useState<{
     name: string;
     province: string;
@@ -1259,116 +998,96 @@ const ManageParties: React.FC = () => {
 const AssignPartiesToDistricts: React.FC = () => {
   const { districts, parties, districtNominations, setDistrictNominations } =
     useElectionData();
-  const [selectedDistrictId, setSelectedDistrictId] = useState<string>("");
-  const [checked, setChecked] = useState<{ [partyId: string]: boolean }>({});
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
-
-  // Update checked state when district selection changes
-  React.useEffect(() => {
-    if (selectedDistrictId) {
-      const nominated = districtNominations[selectedDistrictId] || [];
-      const newChecked: { [partyId: string]: boolean } = {};
-      parties.forEach((p) => {
-        newChecked[p.id] = nominated.includes(p.id);
-      });
-      setChecked(newChecked);
-    } else {
-      setChecked({});
-    }
-  }, [selectedDistrictId, parties, districtNominations]);
-
-  const handleCheck = (partyId: string) => {
-    setChecked((prev) => ({ ...prev, [partyId]: !prev[partyId] }));
-  };
-
-  const handleSave = () => {
-    if (!selectedDistrictId) return;
-    const nominated = Object.entries(checked)
-      .filter(([_, v]) => v)
-      .map(([partyId]) => partyId);
-    setDistrictNominations(selectedDistrictId, nominated);
-    setFormSuccess("Nominations updated successfully");
-    setTimeout(() => setFormSuccess(null), 2000);
-  };
 
   // Filter out the 'all-districts' option
   const districtOptions = districts.filter((d) => d.id !== "all-districts");
+
+  // Handler for checkbox change per district
+  const handleCheck = (districtId: string, partyId: string) => {
+    const nominated = districtNominations[districtId] || [];
+    let updated: string[];
+    if (nominated.includes(partyId)) {
+      updated = nominated.filter((id) => id !== partyId);
+    } else {
+      updated = [...nominated, partyId];
+    }
+    setDistrictNominations(districtId, updated);
+    setFormSuccess(
+      `Nominations updated for ${
+        districts.find((d) => d.id === districtId)?.name
+      }`
+    );
+    setTimeout(() => setFormSuccess(null), 1500);
+  };
 
   return (
     <div className={commonStyles.container}>
       <h2 className={commonStyles.title}>Assign Parties to Districts</h2>
 
-      {/* District Selection */}
-      <div className={commonStyles.formGroup}>
-        <label className={commonStyles.label}>Select District</label>
-        <select
-          className={commonStyles.select}
-          value={selectedDistrictId}
-          onChange={(e) => setSelectedDistrictId(e.target.value)}
-        >
-          <option value="">Select a district</option>
-          {districtOptions.map((district) => (
-            <option key={district.id} value={district.id}>
-              {district.name}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {districtOptions.map((district) => {
+          const nominated = districtNominations[district.id] || [];
+          return (
+            <div
+              key={district.id}
+              className="bg-white border rounded-lg shadow p-4 mb-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-teal-800">
+                  {district.name}
+                </span>
+                <span
+                  className={`text-xs px-2 py-1 rounded ${
+                    nominated.length > 0
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {nominated.length > 0
+                    ? `${nominated.length} assigned`
+                    : "Not assigned"}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {parties.length === 0 ? (
+                  <span className="text-gray-400 text-sm">
+                    No parties available
+                  </span>
+                ) : (
+                  parties.map((party) => (
+                    <label
+                      key={party.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={nominated.includes(party.id)}
+                        onChange={() => handleCheck(district.id, party.id)}
+                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                      />
+                      {party.logoData && (
+                        <img
+                          src={party.logoData}
+                          alt={party.name}
+                          className="h-5 w-5 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="text-sm">{party.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {selectedDistrictId && (
-        <>
-          {/* Party Selection */}
-          <div className={commonStyles.formGroup}>
-            <h3 className={commonStyles.label}>
-              Select Parties for{" "}
-              {districts.find((d) => d.id === selectedDistrictId)?.name}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {parties.map((party) => (
-                <label
-                  key={party.id}
-                  className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked[party.id] || false}
-                    onChange={() => handleCheck(party.id)}
-                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                  />
-                  <div className="flex items-center space-x-2">
-                    {party.logoData && (
-                      <img
-                        src={party.logoData}
-                        alt={`${party.name} logo`}
-                        className="w-6 h-6 object-contain"
-                      />
-                    )}
-                    <span className="text-sm font-medium text-gray-700">
-                      {party.name}
-                    </span>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleSave}
-              className={commonStyles.button.primary}
-            >
-              Save Nominations
-            </button>
-          </div>
-
-          {/* Success Message */}
-          {formSuccess && (
-            <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md">
-              {formSuccess}
-            </div>
-          )}
-        </>
+      {/* Success Message */}
+      {formSuccess && (
+        <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md text-center">
+          {formSuccess}
+        </div>
       )}
 
       {/* Progress Summary */}
@@ -1381,7 +1100,6 @@ const AssignPartiesToDistricts: React.FC = () => {
             const nominatedParties = parties.filter((p) =>
               nominated.includes(p.id)
             );
-
             return (
               <div
                 key={district.id}
@@ -1408,26 +1126,16 @@ const AssignPartiesToDistricts: React.FC = () => {
 
                 {isComplete && (
                   <div className="mt-2">
-                    <div className="text-xs font-medium text-gray-500 mb-2">
+                    <span className="text-xs text-gray-600">
                       Nominated Parties:
-                    </div>
-                    <div className="space-y-2">
-                      {nominatedParties.map((party) => (
-                        <div
-                          key={party.id}
-                          className="flex items-center space-x-2 text-sm bg-white p-2 rounded border"
-                        >
-                          {party.logoData && (
-                            <img
-                              src={party.logoData}
-                              alt={`${party.name} logo`}
-                              className="w-5 h-5 object-contain"
-                            />
-                          )}
-                          <span className="text-gray-700">{party.name}</span>
-                        </div>
+                    </span>
+                    <ul className="list-disc ml-5 mt-1">
+                      {nominatedParties.map((p) => (
+                        <li key={p.id} className="text-xs text-gray-800">
+                          {p.name}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
               </div>
