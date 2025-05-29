@@ -8,6 +8,8 @@ import AdminPanel from "./pages/AdminPanel";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Landing from "./pages/Landing";
+import ElectionProcess from "./pages/ElectionProcess";
 import { ElectionDataProvider } from "./context/ElectionDataContext";
 
 function App() {
@@ -25,21 +27,30 @@ function App() {
   return (
     <Router>
       <ElectionDataProvider>
-        <div className="flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow pt-20">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/results" element={<Results />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route
+            path="/*"
+            element={
+              <div className="flex flex-col min-h-screen">
+                <Header />
+                <main className="flex-grow pt-20">
+                  <Routes>
+                    <Route path="/home" element={<Home />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="/admin" element={<AdminPanel />} />
+                    <Route path="/election-process" element={<ElectionProcess />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="*" element={<Navigate to="/home" replace />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            }
+          />
+        </Routes>
       </ElectionDataProvider>
     </Router>
   );

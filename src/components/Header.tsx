@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const userType = localStorage.getItem('userType');
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -23,7 +24,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center">
           <Link
-            to="/"
+            to="/home"
             className="flex items-center space-x-2"
             onClick={closeMenu}
           >
@@ -39,22 +40,32 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-6 text-lg">
-            <NavLink to="/" isActive={isActiveLink("/")}>
+            <NavLink to="/home" isActive={isActiveLink("/home")}>
               Home
             </NavLink>
-            <NavLink to="/admin" isActive={isActiveLink("/admin")}>
-              Admin Panel
-            </NavLink>
+            {userType === 'admin' && (
+              <NavLink to="/admin" isActive={isActiveLink("/admin")}>
+                Admin Panel
+              </NavLink>
+            )}
+            {userType === 'admin' && (
+              <NavLink to="/election-process" isActive={isActiveLink("/election-process")}>
+                Election Process
+              </NavLink>
+            )}
             <NavLink to="/results" isActive={isActiveLink("/results")}>
               Results
             </NavLink>
-            
-            <NavLink to="/about" isActive={isActiveLink("/about")}>
-              About
-            </NavLink>
-            <NavLink to="/contact" isActive={isActiveLink("/contact")}>
-              Contact
-            </NavLink>
+            {userType !== 'admin' && (
+              <>
+                <NavLink to="/about" isActive={isActiveLink("/about")}>
+                  About
+                </NavLink>
+                <NavLink to="/contact" isActive={isActiveLink("/contact")}>
+                  Contact
+                </NavLink>
+              </>
+            )}
           </nav>
 
           {/* Mobile Menu Button */}
@@ -86,12 +97,30 @@ const Header: React.FC = () => {
         </div>
         <nav className="flex flex-col space-y-4 p-4">
           <MobileNavLink
-            to="/"
-            isActive={isActiveLink("/")}
+            to="/home"
+            isActive={isActiveLink("/home")}
             onClick={closeMenu}
           >
             Home
           </MobileNavLink>
+          {userType === 'admin' && (
+            <MobileNavLink
+              to="/admin"
+              isActive={isActiveLink("/admin")}
+              onClick={closeMenu}
+            >
+              Admin Panel
+            </MobileNavLink>
+          )}
+          {userType === 'admin' && (
+            <MobileNavLink
+              to="/election-process"
+              isActive={isActiveLink("/election-process")}
+              onClick={closeMenu}
+            >
+              Election Process
+            </MobileNavLink>
+          )}
           <MobileNavLink
             to="/results"
             isActive={isActiveLink("/results")}
@@ -99,27 +128,24 @@ const Header: React.FC = () => {
           >
             Results
           </MobileNavLink>
-          <MobileNavLink
-            to="/admin"
-            isActive={isActiveLink("/admin")}
-            onClick={closeMenu}
-          >
-            Admin Panel
-          </MobileNavLink>
-          <MobileNavLink
-            to="/about"
-            isActive={isActiveLink("/about")}
-            onClick={closeMenu}
-          >
-            About
-          </MobileNavLink>
-          <MobileNavLink
-            to="/contact"
-            isActive={isActiveLink("/contact")}
-            onClick={closeMenu}
-          >
-            Contact
-          </MobileNavLink>
+          {userType !== 'admin' && (
+            <>
+              <MobileNavLink
+                to="/about"
+                isActive={isActiveLink("/about")}
+                onClick={closeMenu}
+              >
+                About
+              </MobileNavLink>
+              <MobileNavLink
+                to="/contact"
+                isActive={isActiveLink("/contact")}
+                onClick={closeMenu}
+              >
+                Contact
+              </MobileNavLink>
+            </>
+          )}
           <button
             className="text-gray-400 cursor-not-allowed py-2"
             title="Coming soon"

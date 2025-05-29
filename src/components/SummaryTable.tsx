@@ -52,12 +52,7 @@ const SummaryTable: React.FC<SummaryTableProps> = ({ district, parties }) => {
             >
               Bonus Seats
             </th>
-            <th
-              scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider"
-            >
-              Bonus Seat Party
-            </th>
+            
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -78,17 +73,9 @@ const SummaryTable: React.FC<SummaryTableProps> = ({ district, parties }) => {
               {district.seats}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-              {district.bonusSeats}
+              1
             </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              {bonusSeatParty ? (
-                <span className="px-2 inline-flex text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                  {bonusSeatParty.name}
-                </span>
-              ) : (
-                <span className="text-sm text-gray-700">-</span>
-              )}
-            </td>
+          
           </tr>
         </tbody>
       </table>

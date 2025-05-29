@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useElectionData } from '../context/ElectionDataContext';
 import {
   ComposableMap,
@@ -7,6 +7,8 @@ import {
   ZoomableGroup
 } from 'react-simple-maps';
 import lkData from '../data/lk.json';
+import { getPartyColor } from '../utils/partyColors';
+import { Party } from '../types';
 
 interface DistrictData {
   district: string;
@@ -50,35 +52,25 @@ const MAX_ZOOM = 8;
 // This is a placeholder SVG map of Sri Lanka with districts. Replace with a detailed SVG or GeoJSON for production.
 // You can color districts based on props if needed.
 
-const partyColors: { [key: string]: string } = {
-  'SLPP': '#FFD700',
-  'SJB': '#4169E1',
-  'JVP': '#FF4500',
-  'UNP': '#32CD32',
-  'TNA': '#FF69B4',
-  'SLMC': '#00CED1',
-  'ACMC': '#8A2BE2',
-  'EPDP': '#FF8C00',
-  'default': '#ccc'
-};
-
-const partyNames: { [key: string]: string } = {
-  'SLPP': 'Sri Lanka Podujana Peramuna',
-  'SJB': 'Samagi Jana Balawegaya',
-  'JVP': 'Janatha Vimukthi Peramuna',
-  'UNP': 'United National Party',
-  'TNA': 'Tamil National Alliance',
-  'SLMC': 'Sri Lanka Muslim Congress',
-  'ACMC': 'All Ceylon Makkal Congress',
-  'EPDP': "Eelam People's Democratic Party",
-};
-
 const SriLankaMap: React.FC = () => {
-  const { electionData } = useElectionData();
+  const { calculatedResults, districts } = useElectionData();
   const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [center, setCenter] = useState<[number, number]>(INITIAL_CENTER);
+
+  // Get unique parties and their colors from calculated results
+  const partyColors = useMemo(() => {
+    const colors: { [key: string]: string } = {};
+    Object.values(calculatedResults).forEach(districtParties => {
+      districtParties.forEach(party => {
+        if (!colors[party.name]) {
+          colors[party.name] = getPartyColor({ id: party.id, name: party.name });
+        }
+      });
+    });
+    return colors;
+  }, [calculatedResults]);
 
   // Helper to get English name from GeoJSON name
   const getEnglishDistrictName = (geoName: string) => {
@@ -86,16 +78,22 @@ const SriLankaMap: React.FC = () => {
     return entry ? entry[0] : null;
   };
 
-  const getPartyColor = (districtGeoName: string) => {
-    if (!electionData) return '#ccc';
+  const getDistrictColor = (districtGeoName: string) => {
     const englishName = getEnglishDistrictName(districtGeoName);
     if (!englishName) return '#ccc';
-    const districtData = electionData.find((d: DistrictData) => d.district === englishName);
-    if (!districtData) return '#ccc';
-    const votes = districtData.votes;
-    const entries = Object.entries(votes) as [string, number][];
-    const winningParty = entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-    return partyColors[winningParty] || partyColors.default;
+
+    const district = districts.find(d => d.name === englishName);
+    if (!district) return '#ccc';
+
+    const districtParties = calculatedResults[district.id];
+    if (!districtParties || districtParties.length === 0) return '#ccc';
+
+    // Find party with highest votes
+    const winningParty = districtParties.reduce((prev, curr) => 
+      (curr.votes > prev.votes) ? curr : prev
+    );
+    
+    return getPartyColor({ id: winningParty.id, name: winningParty.name });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -106,22 +104,32 @@ const SriLankaMap: React.FC = () => {
   };
 
   const getDistrictResults = (districtGeoName: string) => {
-    if (!electionData) return null;
     const englishName = getEnglishDistrictName(districtGeoName);
     if (!englishName) return null;
-    const districtData = electionData.find((d: DistrictData) => d.district === englishName);
-    if (!districtData) return null;
+
+    const district = districts.find(d => d.name === englishName);
+    if (!district) return null;
+
+    const districtParties = calculatedResults[district.id];
+    if (!districtParties || districtParties.length === 0) return null;
+
     return (
       <div className="p-2">
         <h3 className="font-bold mb-2">{englishName}</h3>
-        <p className="mb-1">Total Seats: {districtData.seats}</p>
+        <p className="mb-1">Total Seats: {district.seats}</p>
         <div className="space-y-1">
-          {(Object.entries(districtData.votes) as [string, number][])
-            .sort(([, a], [, b]) => b - a)
-            .map(([party, votes]) => (
-              <div key={party} className="flex justify-between">
-                <span>{party}:</span>
-                <span>{votes.toLocaleString()} votes</span>
+          {districtParties
+            .sort((a, b) => b.votes - a.votes)
+            .map(party => (
+              <div key={party.id} className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <span 
+                    className="inline-block w-3 h-3 rounded-full mr-2"
+                    style={{ backgroundColor: getPartyColor({ id: party.id, name: party.name }) }}
+                  />
+                  <span>{party.name}:</span>
+                </div>
+                <span>{party.votes.toLocaleString()} votes</span>
               </div>
             ))}
         </div>
@@ -142,10 +150,13 @@ const SriLankaMap: React.FC = () => {
       {/* Party Color Legend */}
       <div className="flex flex-col justify-center items-start p-6 min-w-[220px]">
         <h4 className="font-semibold mb-4 text-gray-700">Party Colors</h4>
-        {Object.entries(partyColors).filter(([key]) => key !== 'default').map(([party, color]) => (
+        {Object.entries(partyColors).map(([party, color]) => (
           <div key={party} className="flex items-center mb-2">
-            <span className="inline-block w-6 h-6 rounded mr-3 border border-gray-400" style={{ backgroundColor: color }}></span>
-            <span className="text-gray-800 text-sm font-medium">{partyNames[party] || party}</span>
+            <span 
+              className="inline-block w-6 h-6 rounded mr-3 border border-gray-400" 
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-gray-800 text-sm font-medium">{party}</span>
           </div>
         ))}
       </div>
@@ -182,7 +193,7 @@ const SriLankaMap: React.FC = () => {
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      fill={getPartyColor(districtGeoName)}
+                      fill={getDistrictColor(districtGeoName)}
                       stroke="#fff"
                       strokeWidth={0.5}
                       style={{

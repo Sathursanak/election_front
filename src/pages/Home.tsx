@@ -1,16 +1,63 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useElectionData } from "../context/ElectionDataContext";
 import SriLankaMap from "../components/SriLankaMap";
 // import HomeHeroSlider from "../components/HomeHeroSlider";
 
 const Home: React.FC = () => {
-  const { electionStats, year } = useElectionData();
+  const { electionStats, year, parties, districts, calculatedResults } = useElectionData();
+
+  // Calculate leading party and voter turnout from actual data
+  const { leadingParty, voterTurnout } = useMemo(() => {
+    // Calculate leading party from all districts
+    let totalVotes = 0;
+    let partyVotes: Record<string, { name: string; votes: number; seats: number }> = {};
+
+    // Sum up votes and seats for each party across all districts
+    Object.values(calculatedResults).forEach(districtParties => {
+      districtParties.forEach(party => {
+        const key = party.name.trim().toLowerCase();
+        if (!partyVotes[key]) {
+          partyVotes[key] = {
+            name: party.name,
+            votes: 0,
+            seats: 0
+          };
+        }
+        partyVotes[key].votes += party.votes;
+        partyVotes[key].seats += (party as any).totalSeats || 0;
+      });
+    });
+
+    // Find the party with highest votes
+    const leadingPartyData = Object.values(partyVotes).reduce((prev, curr) => 
+      curr.votes > prev.votes ? curr : prev
+    , { name: '', votes: 0, seats: 0 });
+
+    // Calculate total votes from all districts
+    totalVotes = districts
+      .filter(d => d.id !== "all-districts")
+      .reduce((sum, d) => sum + d.totalVotes, 0);
+
+    // Calculate voter turnout (assuming registered voters is 1.5x total votes for this example)
+    const registeredVoters = totalVotes * 1.5;
+    const turnout = Math.round((totalVotes / registeredVoters) * 100);
+
+    return {
+      leadingParty: {
+        name: leadingPartyData.name || 'N/A',
+        seats: leadingPartyData.seats || 0
+      },
+      voterTurnout: turnout
+    };
+  }, [calculatedResults, districts]);
 
   return (
     <div className="flex flex-col min-h-screen">
+      
+
       {/* Hero Section with Static Image */}
-      <section className="relative w-full h-64 md:h-96 overflow-hidden rounded-b-2xl shadow-lg">
+      <section className="relative w-full h-64 md:h-96 overflow-hidden rounded-b-2xl shadow-lg ">
         <img
           src="https://www.shutterstock.com/image-photo/election-sri-lanka-hand-man-260nw-1581645550.jpg"
           alt="Sri Lanka Election Hero"
@@ -20,7 +67,13 @@ const Home: React.FC = () => {
           <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white text-center drop-shadow-lg px-4 ">
             Sri Lanka Parliamentary Election {year} Results
           </h1>
-          <div className="absolute bottom-8 right-8 z-20">
+          <div className="absolute bottom-8 right-8 z-20 flex gap-4">
+            <Link
+              to="/"
+              className="inline-block bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
+            >
+              Back to Landing
+            </Link>
             <Link
               to="/results"
               className="inline-block bg-teal-800 hover:bg-teal-900 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg"
@@ -38,9 +91,9 @@ const Home: React.FC = () => {
             Election Overview
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             {/* Total Votes Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800  ">
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800">
               <h3 className="text-xl font-semibold mb-2 text-teal-800">
                 Total Votes
               </h3>
@@ -62,74 +115,39 @@ const Home: React.FC = () => {
               </p>
               <p className="text-gray-500 mt-2">Parliament seats allocated</p>
             </div>
+
+            {/* Leading Party Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800">
+              <h3 className="text-xl font-semibold mb-2 text-teal-800">
+                Leading Party
+              </h3>
+              <p className="text-3xl font-bold text-gray-800">
+                {leadingParty.name}
+              </p>
+              <p className="text-gray-500 mt-2">
+                {leadingParty.seats} seats secured
+              </p>
+            </div>
+
+            {/* Voter Turnout Card */}
+            <div className="bg-white rounded-lg shadow-md p-6 transform transition duration-300 hover:shadow-lg hover:-translate-y-1 border-2 border-teal-800">
+              <h3 className="text-xl font-semibold mb-2 text-teal-800">
+                Voter Turnout
+              </h3>
+              <p className="text-3xl font-bold text-gray-800">
+                {voterTurnout}%
+              </p>
+              <p className="text-gray-500 mt-2">
+                Of registered voters participated
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
      
 
-      {/* Quick Access Section */}
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-gray-800">
-            Quick Access
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Link
-              to="/results"
-              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300 "
-            >
-              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
-                View Election Results
-              </h3>
-              <p className="text-gray-700">
-                Explore detailed election results including vote counts, seat
-                allocations, and bonus seats for all 22 electoral districts.
-              </p>
-            </Link>
-
-            <Link
-              to="/admin"
-              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
-            >
-              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
-                Admin Panel
-              </h3>
-              <p className="text-gray-700">
-                Manage parties and votes data through the administrative
-                interface.
-              </p>
-            </Link>
-
-            <Link
-              to="/about"
-              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
-            >
-              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
-                About the Election
-              </h3>
-              <p className="text-gray-700">
-                Learn about the Sri Lanka Parliamentary Election, voting
-                process, and seat allocation methodology.
-              </p>
-            </Link>
-
-            <Link
-              to="/contact"
-              className="group block bg-teal-50 rounded-lg p-6 hover:bg-teal-100 transition duration-300"
-            >
-              <h3 className="text-xl font-semibold mb-3 text-teal-800 group-hover:text-teal-900">
-                Contact Information
-              </h3>
-              <p className="text-gray-700">
-                Get in touch with the Election Commission of Sri Lanka for
-                inquiries and information.
-              </p>
-            </Link>
-          </div>
-        </div>
-      </section>
+      
     </div>
   );
 };

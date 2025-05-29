@@ -1,13 +1,13 @@
 // src/utils/dataService.ts
 import { District, Party, ElectionStats } from '../types';
-import { initialDistricts, initialParties, electionStats as initialStats } from '../data/mockData';
+import { initialParties, electionStats as initialStats } from '../data/mockData';
 
 const USE_MOCK = true; // Set to false to use backend
 const API_BASE = 'http://localhost:5000/api'; // Change to your backend base URL
 
 export const dataService = {
   async getDistricts(): Promise<District[]> {
-    if (USE_MOCK) return initialDistricts;
+    if (USE_MOCK) return [];
     const res = await fetch(`${API_BASE}/districts`);
     return res.json();
   },

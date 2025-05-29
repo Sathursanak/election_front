@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronRight, Menu, X, Search } from "lucide-react";
 import { useElectionData } from "../context/ElectionDataContext";
-import { provinces } from "../data/mockData";
 
 interface DistrictNavigationProps {
   className?: string;
@@ -12,13 +11,10 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
   className = "",
   showIslandWideOption = true,
 }) => {
-  const { districts, selectedDistrictId, setSelectedDistrictId } =
-    useElectionData();
+  const { districts, selectedDistrictId, setSelectedDistrictId, provinces } = useElectionData();
   // Initially all provinces are collapsed (false)
-  const [expandedProvinces, setExpandedProvinces] = useState<
-    Record<string, boolean>
-  >(
-    provinces.reduce((acc, province) => ({ ...acc, [province.id]: false }), {})
+  const [expandedProvinces, setExpandedProvinces] = useState<Record<string, boolean>>(
+    provinces.reduce((acc, province) => ({ ...acc, [province]: false }), {})
   );
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,20 +26,19 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
     provinces.forEach((province) => {
       const hasMatch = districts.some(
         (d) =>
-          d.province === province.id &&
+          d.province === province &&
           d.id !== "all-districts" &&
           d.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      expanded[province.id] = hasMatch;
+      expanded[province] = hasMatch;
     });
     setExpandedProvinces(expanded);
-    // eslint-disable-next-line
-  }, [searchQuery]);
+  }, [searchQuery, districts, provinces]);
 
-  const toggleProvince = (provinceId: string) => {
+  const toggleProvince = (province: string) => {
     setExpandedProvinces((prev) => ({
       ...prev,
-      [provinceId]: !prev[provinceId],
+      [province]: !prev[province],
     }));
   };
 
@@ -65,32 +60,32 @@ const DistrictNavigation: React.FC<DistrictNavigationProps> = ({
   const renderProvinces = () => {
     return provinces.map((province) => {
       const provinceDistricts = filteredDistricts.filter(
-        (d) => d.province === province.id
+        (d) => d.province === province
       );
       if (provinceDistricts.length === 0) return null;
 
       return (
-        <div key={province.id} className="mb-2">
+        <div key={province} className="mb-2">
           <button
             className="flex items-center w-full text-left px-3 py-2 bg-teal-900 text-white rounded-md hover:bg-teal-800 transition"
-            onClick={() => toggleProvince(province.id)}
+            onClick={() => toggleProvince(province)}
           >
-            {expandedProvinces[province.id] ? (
+            {expandedProvinces[province] ? (
               <ChevronDown size={16} className="mr-2" />
             ) : (
               <ChevronRight size={16} className="mr-2" />
             )}
-            {province.name}
+            {province}
           </button>
 
-          {expandedProvinces[province.id] && (
+          {expandedProvinces[province] && (
             <div className="ml-4 mt-1 space-y-1">
               {provinceDistricts.map((district) => (
                 <button
                   key={district.id}
                   className={`w-full text-left px-3 py-2 rounded-md transition ${
                     selectedDistrictId === district.id
-                      ? "bg-teal-100  font-semibold"
+                      ? "bg-teal-100 font-semibold"
                       : "hover:bg-gray-100"
                   }`}
                   onClick={() => handleDistrictSelect(district.id)}

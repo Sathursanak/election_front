@@ -23,6 +23,11 @@ interface ElectionDataContextType {
   electionStats: {
     totalVotes: number;
     totalSeats: number;
+    leadingParty?: {
+      name: string;
+      seats: number;
+    };
+    voterTurnout: number;
   };
   year: number;
   setYear: (year: number) => void;
@@ -30,6 +35,8 @@ interface ElectionDataContextType {
   parties: Party[];
   selectedDistrictId: string;
   setSelectedDistrictId: (id: string) => void;
+  provinces: string[];
+  setProvinces: (provinces: string[]) => void;
   addParty: (
     party: Omit<Party, "id" | "percentage" | "seats" | "hasBonusSeat">
   ) => void;
@@ -49,6 +56,8 @@ interface ElectionDataContextType {
     districtId: string,
     votes: number
   ) => void;
+  calculatedResults: { [districtId: string]: Party[] };
+  setCalculatedResults: (districtId: string, results: Party[]) => void;
 }
 
 const ElectionDataContext = createContext<ElectionDataContextType | undefined>(
@@ -62,15 +71,23 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
   const [year, setYear] = useState(2025);
   const [districts, setDistricts] = useState<District[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
-  const [electionStats, setElectionStats] = useState<ElectionStats>({
+  const [provinces, setProvinces] = useState<string[]>([]);
+  const [electionStats, setElectionStats] = useState({
     totalVotes: 0,
     totalSeats: 0,
-    participatingParties: 0,
+    leadingParty: {
+      name: 'N/A',
+      seats: 0
+    },
+    voterTurnout: 75
   });
   const [selectedDistrictId, setSelectedDistrictId] =
     useState<string>("all-districts");
   const [districtNominations, setDistrictNominationsState] = useState<{
     [districtId: string]: string[];
+  }>({});
+  const [calculatedResults, setCalculatedResultsState] = useState<{
+    [districtId: string]: Party[];
   }>({});
 
   // (Removed localStorage for year, use state only)
@@ -133,13 +150,45 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     return highestVotesParty.id;
   };
 
+  // Update party votes
+  const updatePartyVotes = (
+    partyId: string,
+    districtId: string,
+    votes: number
+  ) => {
+    // Find the specific party instance for this district
+    const party = parties.find((p) => p.id === partyId && p.districtId === districtId);
+    if (!party) return;
+
+    // Create a new party object with updated votes
+    const updatedParty = {
+      ...party,
+      votes,
+    };
+
+    // Update only this specific party instance
+    setParties((prev: Party[]) =>
+      prev.map((p: Party) => (p.id === partyId && p.districtId === districtId ? updatedParty : p))
+    );
+
+    // Update district's bonus seat party if needed
+    const bonusSeatPartyId = determineBonusSeatParty(districtId);
+    setDistricts((prev: District[]) =>
+      prev.map((d: District) =>
+        d.id === districtId ? { ...d, bonusSeatPartyId } : d
+      )
+    );
+
+    // Update election stats
+    updateElectionStats();
+  };
+
   // Add a new party (backend-ready)
   const addParty = async (
     partyData: Omit<Party, "id" | "percentage" | "seats" | "hasBonusSeat">
   ) => {
-    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${
-      partyData.districtId
-    }`;
+    // Create a unique ID that includes both party name and district
+    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${partyData.districtId}-${Date.now()}`;
     const district = districts.find((d) => d.id === partyData.districtId);
     if (!district) return;
 
@@ -149,6 +198,7 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       percentage: 0,
       seats: 0,
       hasBonusSeat: false,
+      votes: 0, // Initialize votes to 0
     };
 
     // Save to backend or mock
@@ -157,12 +207,12 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     // Calculate stats for the new party
     const partyWithStats = calculatePartyStats(savedParty, district);
 
-    setParties((prev) => [...prev, partyWithStats]);
+    setParties((prev: Party[]) => [...prev, partyWithStats]);
 
     // Update district's bonus seat party if this party has the highest votes
     const bonusSeatPartyId = determineBonusSeatParty(partyData.districtId);
-    setDistricts((prev) =>
-      prev.map((d) =>
+    setDistricts((prev: District[]) =>
+      prev.map((d: District) =>
         d.id === partyData.districtId ? { ...d, bonusSeatPartyId } : d
       )
     );
@@ -290,6 +340,7 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       0
     );
 
+    // Count unique party names across all districts
     const uniquePartyNames = new Set(parties.map((party) => party.name));
     const participatingParties = uniquePartyNames.size;
 
@@ -308,21 +359,12 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     }));
   };
 
-  // Update party votes
-  const updatePartyVotes = (
-    partyId: string,
-    districtId: string,
-    votes: number
-  ) => {
-    const party = parties.find((p) => p.id === partyId);
-    if (!party) return;
-
-    const updatedParty = {
-      ...party,
-      votes,
-    };
-
-    updateParty(updatedParty);
+  // Add function to set calculated results
+  const setCalculatedResults = (districtId: string, results: Party[]) => {
+    setCalculatedResultsState(prev => ({
+      ...prev,
+      [districtId]: results
+    }));
   };
 
   const value = {
@@ -334,6 +376,8 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     parties,
     selectedDistrictId,
     setSelectedDistrictId,
+    provinces,
+    setProvinces,
     addParty,
     updateParty,
     deleteParty,
@@ -344,6 +388,8 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     districtNominations,
     setDistrictNominations,
     updatePartyVotes,
+    calculatedResults,
+    setCalculatedResults,
   };
 
   return (

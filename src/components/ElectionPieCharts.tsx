@@ -7,7 +7,6 @@ import {
 } from "chart.js";
 import { Pie } from "react-chartjs-2";
 import { useElectionData } from "../context/ElectionDataContext";
-import { provinces as provinceList } from "../data/mockData";
 import { Party, District, Province } from "../types";
 import { getPartyColor } from "../utils/partyColors";
 
@@ -19,6 +18,14 @@ function getInitials(name: string): string {
     .filter(Boolean)
     .map((word) => word[0].toUpperCase())
     .join("");
+}
+
+interface PartyWithResults extends Party {
+  seats?: number;
+  totalSeats?: number;
+  qualified?: boolean;
+  firstRoundSeats?: number;
+  secondRoundSeats?: number;
 }
 
 interface ElectionPieChartsProps {
@@ -46,6 +53,63 @@ function aggregatePartiesByDistricts(
   return Object.values(partyMap);
 }
 
+// Helper: aggregate party data for a province from district results
+function aggregatePartiesByProvince(
+  calculatedResults: Record<string, PartyWithResults[]>,
+  districts: District[],
+  provinceId: string
+) {
+  // Get all districts in this province
+  const provinceDistricts = districts.filter(d => d.province === provinceId);
+  const provincePartyMap: Record<string, PartyWithResults> = {};
+
+  // For each district in the province
+  provinceDistricts.forEach(district => {
+    // Get the calculated results for this district
+    const districtParties = calculatedResults[district.id] || [];
+    
+    // For each party in the district
+    districtParties.forEach(party => {
+      const key = party.name.trim().toLowerCase();
+      const partyWithResults = party as PartyWithResults;
+      
+      // Initialize party data if not exists
+      if (!provincePartyMap[key]) {
+        provincePartyMap[key] = {
+          ...party,
+          votes: 0,
+          seats: 0,
+          totalSeats: 0,
+          firstRoundSeats: 0,
+          secondRoundSeats: 0,
+          hasBonusSeat: false
+        } as PartyWithResults;
+      }
+
+      // Sum up the values
+      const currentParty = provincePartyMap[key];
+      if (currentParty) {
+        // Sum votes
+        currentParty.votes += party.votes;
+        
+        // Sum seats
+        currentParty.seats = (currentParty.seats || 0) + (partyWithResults.seats || 0);
+        currentParty.totalSeats = (currentParty.totalSeats || 0) + (partyWithResults.totalSeats || 0);
+        currentParty.firstRoundSeats = (currentParty.firstRoundSeats || 0) + (partyWithResults.firstRoundSeats || 0);
+        currentParty.secondRoundSeats = (currentParty.secondRoundSeats || 0) + (partyWithResults.secondRoundSeats || 0);
+        
+        // If any district gives bonus seat, mark it
+        if (partyWithResults.hasBonusSeat) {
+          currentParty.hasBonusSeat = true;
+        }
+      }
+    });
+  });
+
+  // Sort by votes and return
+  return Object.values(provincePartyMap).sort((a, b) => b.votes - a.votes);
+}
+
 const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
   parties,
   districts,
@@ -55,24 +119,41 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
   const [expandedProvince, setExpandedProvince] = useState<string | null>(null);
   // Tab state: "charts" or "partywise"
   const [activeTab, setActiveTab] = useState<"charts" | "partywise">("charts");
+  // Get calculated results from context
+  const { calculatedResults } = useElectionData();
 
-  // Island-wide party aggregation (by name)
-  const partyMap: Record<string, Party & { seats: number }> = {};
-  allParties.forEach((p) => {
-    const key = p.name.trim().toLowerCase();
-    if (!partyMap[key]) {
-      partyMap[key] = { ...p, votes: 0, seats: 0 };
-    }
-    partyMap[key].votes += p.votes;
-    partyMap[key].seats += p.seats || 0;
+  // Island-wide party aggregation from calculated district results
+  const islandWidePartyMap: Record<string, PartyWithResults> = {};
+  
+  // Sum up results from all districts
+  Object.values(calculatedResults).forEach(districtParties => {
+    districtParties.forEach(party => {
+      const key = party.name.trim().toLowerCase();
+      const partyWithResults = party as PartyWithResults;
+      if (!islandWidePartyMap[key]) {
+        islandWidePartyMap[key] = {
+          ...party,
+          votes: 0,
+          seats: 0,
+          totalSeats: 0
+        } as PartyWithResults;
+      }
+      const currentParty = islandWidePartyMap[key];
+      if (currentParty) {
+        currentParty.votes += party.votes;
+        currentParty.seats = (currentParty.seats || 0) + (partyWithResults.seats || 0);
+        currentParty.totalSeats = (currentParty.totalSeats || 0) + (partyWithResults.totalSeats || 0);
+      }
+    });
   });
-  const islandWideParties = Object.values(partyMap).sort(
+
+  const islandWideParties = Object.values(islandWidePartyMap).sort(
     (a, b) => b.votes - a.votes
   );
 
   // Pie chart data generator
   function getPieData(
-    parties: (Party & { seats?: number })[],
+    parties: PartyWithResults[],
     valueType: "votes" | "seats"
   ) {
     const sorted = [...parties].sort((a, b) => b.votes - a.votes);
@@ -81,7 +162,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
       datasets: [
         {
           data: sorted.map((p) =>
-            valueType === "votes" ? p.votes : p.seats || 0
+            valueType === "votes" ? p.votes : (p as PartyWithResults).totalSeats || 0
           ),
           backgroundColor: sorted.map((p) => getPartyColor(p)),
           borderColor: "#fff",
@@ -95,7 +176,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
   function PartyLegend({
     parties,
   }: {
-    parties: (Party & { seats?: number })[];
+    parties: PartyWithResults[];
   }) {
     // Show all parties in the same order everywhere
     const sorted = [...parties].sort((a, b) => a.name.localeCompare(b.name));
@@ -114,8 +195,8 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
             <span className="text-gray-500">
               Votes: {p.votes.toLocaleString()}
             </span>
-            {typeof p.seats === "number" && (
-              <span className="text-gray-500">Seats: {p.seats}</span>
+            {typeof p.totalSeats === "number" && (
+              <span className="text-gray-500">Seats: {p.totalSeats}</span>
             )}
           </div>
         ))}
@@ -185,7 +266,7 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                             return `${
                               p.name
                             }: ${p.votes.toLocaleString()} votes, ${
-                              p.seats
+                              p.totalSeats || 0
                             } seats`;
                           },
                         },
@@ -200,39 +281,27 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
             </div>
           </div>
 
-          {/* Province Pie Charts */}
+          {/* District Results */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              Provinces
+              District Results
             </h2>
             <ResponsivePieGrid>
-              {provinceList.map((province, idx) => {
-                const provinceDistricts = districts.filter(
-                  (d) => d.province === province.id
-                );
-                const provinceDistrictIds = provinceDistricts.map((d) => d.id);
-                const provinceParties = aggregatePartiesByDistricts(
-                  allParties,
-                  provinceDistrictIds
-                );
-                if (provinceParties.length === 0) return null;
+              {districts.filter(d => d.id !== "all-districts").map((district) => {
+                const districtParties = calculatedResults[district.id] || [];
+                if (districtParties.length === 0) return null;
+
                 return (
                   <div
-                    key={province.id}
-                    className={`bg-white rounded-lg shadow p-4 border-2 border-teal-700 hover:shadow-lg transition ${
-                      expandedProvince === province.id
-                        ? "ring-2 ring-teal-500"
-                        : ""
-                    }`}
-                    tabIndex={0}
-                    aria-label={`Province: ${province.name}`}
+                    key={district.id}
+                    className="bg-white rounded-lg shadow p-4 border-2 border-teal-700 hover:shadow-lg transition"
                   >
                     <h3 className="text-md font-bold text-teal-800 mb-2 text-center">
-                      {province.name}
+                      {district.name}
                     </h3>
                     <div className="relative flex flex-col items-center">
                       <Pie
-                        data={getPieData(provinceParties, "votes")}
+                        data={getPieData(districtParties, "votes")}
                         options={{
                           responsive: true,
                           plugins: {
@@ -240,11 +309,11 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                             tooltip: {
                               callbacks: {
                                 label: function (context: any) {
-                                  const p = provinceParties[context.dataIndex];
+                                  const p = districtParties[context.dataIndex] as PartyWithResults;
                                   return `${
                                     p.name
                                   }: ${p.votes.toLocaleString()} votes, ${
-                                    p.seats
+                                    p.totalSeats || 0
                                   } seats`;
                                 },
                               },
@@ -257,95 +326,8 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                     </div>
                     <div className="w-full mt-4">
                       <div className="flex flex-wrap justify-center gap-2">
-                        <PartyLegend parties={provinceParties} />
+                        <PartyLegend parties={districtParties} />
                       </div>
-                    </div>
-                    {/* Show/hide district results button below legend */}
-                    <div className="flex flex-col items-center mt-4">
-                      <button
-                        className="flex flex-col items-center group focus:outline-none"
-                        onClick={() => setExpandedProvince(province.id)}
-                        aria-label={`Show district results for ${province.name}`}
-                        type="button"
-                      >
-                        <span className="text-xs font-semibold text-teal-900 bg-teal-100 px-3 py-2 rounded shadow border border-teal-300 group-hover:bg-teal-200">
-                          Show district results
-                        </span>
-                      </button>
-                      {/* Popup for district results */}
-                      {expandedProvince === province.id && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                          <div className="relative bg-white rounded-lg shadow-2xl p-8 max-w-5xl w-full mx-4 overflow-y-auto max-h-[90vh]">
-                            <button
-                              className="absolute top-4 right-4 text-gray-500 hover:text-teal-700 focus:outline-none"
-                              onClick={() => setExpandedProvince(null)}
-                              aria-label="Close district results"
-                              type="button"
-                            >
-                              <svg
-                                width="28"
-                                height="28"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                              >
-                                <path
-                                  d="M6 6l12 12M6 18L18 6"
-                                  stroke="#0D4E8B"
-                                  strokeWidth="2.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                            <h4 className="text-lg font-semibold text-gray-700 mb-6 text-center">
-                              Districts in {province.name}
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {provinceDistricts.map((district) => {
-                                const districtParties = allParties.filter(
-                                  (p) => p.districtId === district.id
-                                );
-                                if (districtParties.length === 0) return null;
-                                return (
-                                  <div
-                                    key={district.id}
-                                    className="bg-gray-50 rounded-lg shadow p-6 border border-teal-300 flex flex-col items-center relative"
-                                    style={{ minWidth: 320, minHeight: 420 }}
-                                  >
-                                    <h5 className="text-base font-bold text-teal-700 mb-2 text-center">
-                                      {district.name}
-                                    </h5>
-                                    <Pie
-                                      data={getPieData(
-                                        districtParties,
-                                        "votes"
-                                      )}
-                                      options={{
-                                        responsive: true,
-                                        plugins: {
-                                          legend: { display: false },
-                                          tooltip: {
-                                            enabled: true,
-                                          },
-                                        },
-                                      }}
-                                      width={220}
-                                      height={220}
-                                    />
-                                    <div className="w-full mt-4">
-                                      <div className="flex flex-wrap justify-center gap-2">
-                                        <PartyLegend
-                                          parties={districtParties}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -364,17 +346,15 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
             {islandWideParties.map((party, i) => {
               // For each district, check if this party is leading (has max votes)
               const leadingDistricts = districts.filter((d) => {
-                // Get all parties in this district
-                const partiesInDistrict = allParties.filter(
-                  (p) => p.districtId === d.id
-                );
-                if (partiesInDistrict.length === 0) return false;
+                if (d.id === "all-districts") return false;
+                const districtResults = calculatedResults[d.id] || [];
+                if (districtResults.length === 0) return false;
                 // Find max votes in this district
                 const maxVotes = Math.max(
-                  ...partiesInDistrict.map((p) => p.votes)
+                  ...districtResults.map((p) => p.votes)
                 );
                 // Is this party the leader (and not 0 votes)?
-                return partiesInDistrict.some(
+                return districtResults.some(
                   (p) =>
                     p.name === party.name &&
                     p.votes === maxVotes &&
@@ -384,20 +364,17 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
 
               // Pie chart data: for all districts, 1 if party leads, 0 if not
               const pieData = {
-                labels: districts.map((d) => d.name),
+                labels: districts.filter(d => d.id !== "all-districts").map((d) => d.name),
                 datasets: [
                   {
-                    data: districts.map((d) => {
-                      // Get all parties in this district
-                      const partiesInDistrict = allParties.filter(
-                        (p) => p.districtId === d.id
-                      );
-                      if (partiesInDistrict.length === 0) return 0;
+                    data: districts.filter(d => d.id !== "all-districts").map((d) => {
+                      const districtResults = calculatedResults[d.id] || [];
+                      if (districtResults.length === 0) return 0;
                       const maxVotes = Math.max(
-                        ...partiesInDistrict.map((p) => p.votes)
+                        ...districtResults.map((p) => p.votes)
                       );
                       // 1 if this party is leader, else 0
-                      return partiesInDistrict.some(
+                      return districtResults.some(
                         (p) =>
                           p.name === party.name &&
                           p.votes === maxVotes &&
@@ -406,15 +383,12 @@ const ElectionPieCharts: React.FC<ElectionPieChartsProps> = ({
                         ? 1
                         : 0;
                     }),
-                    backgroundColor: districts.map((d) => {
-                      // Highlight leading districts, gray for others
-                      const partiesInDistrict = allParties.filter(
-                        (p) => p.districtId === d.id
-                      );
+                    backgroundColor: districts.filter(d => d.id !== "all-districts").map((d) => {
+                      const districtResults = calculatedResults[d.id] || [];
                       const maxVotes = Math.max(
-                        ...partiesInDistrict.map((p) => p.votes)
+                        ...districtResults.map((p) => p.votes)
                       );
-                      return partiesInDistrict.some(
+                      return districtResults.some(
                         (p) =>
                           p.name === party.name &&
                           p.votes === maxVotes &&

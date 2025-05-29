@@ -40,10 +40,13 @@ const AdminPanel: React.FC = () => {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingParty) {
-      updateParty({
+      const updatedParty = {
         ...editingParty,
+        id: `${editingParty.name.toLowerCase().replace(/\s+/g, "-")}-${selectedDistrictId}-${Date.now()}`,
+        districtId: selectedDistrictId,
         votes: Number(editingParty.votes),
-      });
+      };
+      updateParty(updatedParty);
       setEditingParty(null);
     }
   };
@@ -131,7 +134,7 @@ const AdminPanel: React.FC = () => {
         </form>
       </div>
 
-      {/* Add Votes for Parties Section */}
+      {/* Add Votes for Parties Section
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-700">
           Add Votes for Parties
@@ -150,7 +153,7 @@ const AdminPanel: React.FC = () => {
             onClose={() => setAddVotesModalOpen(false)}
           />
         )}
-      </div>
+      </div> */}
 
       {/* Edit Party Modal */}
       {editingParty && (
