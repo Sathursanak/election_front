@@ -308,7 +308,7 @@ export const initialParties: Party[] = [];
 
 export const electionStats: ElectionStats = {
   totalVotes: 12345678,
-  totalSeats: 225,
+  totalSeats: 196,
   participatingParties: 15
 };
 

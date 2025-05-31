@@ -38,18 +38,14 @@ const commonStyles = {
   },
 };
 
-const DATA_SETUP_COMPLETE_KEY = "dataSetupComplete";
+const DATA_SETUP_COMPLETE_KEY = "dataSetupCompleteSession";
 
 const DataSetup: React.FC = () => {
   const { provinces, setProvinces, districts, updateSettings } =
     useElectionData();
   // Step 1: Province setup
-  const [numberOfProvinces, setNumberOfProvinces] = useState<number>(
-    provinces.length || 0
-  );
-  const [provinceNames, setProvinceNames] = useState<string[]>(
-    provinces.length ? provinces : []
-  );
+  const [numberOfProvinces, setNumberOfProvinces] = useState<number>(0);
+  const [provinceNames, setProvinceNames] = useState<string[]>([]);
   const [provinceStepDone, setProvinceStepDone] = useState(false);
   // Step 2: District setup
   const [districtCounts, setDistrictCounts] = useState<Record<string, number>>(
@@ -61,35 +57,39 @@ const DataSetup: React.FC = () => {
   const [districtStepDone, setDistrictStepDone] = useState(false);
   // Step 3: Confirmation
   const [confirmStep, setConfirmStep] = useState(false);
+  // New state to track if setup is complete in the current session
+  const [isSetupCompleteInSession, setIsSetupCompleteInSession] = useState(false);
   // Error/success
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
-  // On mount, check if setup is complete (persisted in localStorage)
+  // On mount, check if setup is complete in the current session (persisted in sessionStorage)
+  // and initialize state from context or default data.
   useEffect(() => {
-    const isComplete = localStorage.getItem(DATA_SETUP_COMPLETE_KEY) === "true";
+    const isComplete = sessionStorage.getItem(DATA_SETUP_COMPLETE_KEY) === "true";
+    setIsSetupCompleteInSession(isComplete);
+
     if (isComplete) {
-      // Restore province and district data from localStorage if available
-      const savedProvinces = JSON.parse(
-        localStorage.getItem("dataSetupProvinces") || "null"
-      );
-      const savedDistrictNames = JSON.parse(
-        localStorage.getItem("dataSetupDistrictNames") || "null"
-      );
-      if (savedProvinces && savedDistrictNames) {
-        setProvinceNames(savedProvinces);
-        setNumberOfProvinces(savedProvinces.length);
-        setDistrictNames(savedDistrictNames);
-        // Set districtCounts from districtNames
-        const counts: Record<string, number> = {};
-        Object.keys(savedDistrictNames).forEach((p) => {
-          counts[p] = savedDistrictNames[p].length;
-        });
-        setDistrictCounts(counts);
-      } else if (provinces.length) {
-        setProvinceNames(provinces);
-        setNumberOfProvinces(provinces.length);
-        // Try to infer districtCounts and districtNames from districts
+      // If setup is complete in session, load data from context to display summary
+      if (provinces.length > 0 && districts.length > 0) {
+         setProvinceNames(provinces);
+         setNumberOfProvinces(provinces.length);
+         const counts: Record<string, number> = {};
+         const names: Record<string, string[]> = {};
+         provinces.forEach((p) => {
+           const dists = districts.filter((d) => d.province === p);
+           counts[p] = dists.length;
+           names[p] = dists.map((d) => d.name);
+         });
+         setDistrictCounts(counts);
+         setDistrictNames(names);
+         setConfirmStep(true); // Ensure summary is shown
+      }
+    } else if (provinces.length > 0) {
+      // If not complete in session, initialize state based on default provinces and districts from context
+      setProvinceNames(provinces);
+      setNumberOfProvinces(provinces.length);
+       if (districts.length > 0) {
         const counts: Record<string, number> = {};
         const names: Record<string, string[]> = {};
         provinces.forEach((p) => {
@@ -99,25 +99,9 @@ const DataSetup: React.FC = () => {
         });
         setDistrictCounts(counts);
         setDistrictNames(names);
-      }
-      setProvinceStepDone(true);
-      setDistrictStepDone(true);
-      setConfirmStep(true);
-    } else if (provinces.length) {
-      setProvinceNames(provinces);
-      setNumberOfProvinces(provinces.length);
-      // Try to infer districtCounts and districtNames from districts
-      const counts: Record<string, number> = {};
-      const names: Record<string, string[]> = {};
-      provinces.forEach((p) => {
-        const dists = districts.filter((d) => d.province === p);
-        counts[p] = dists.length;
-        names[p] = dists.map((d) => d.name);
-      });
-      setDistrictCounts(counts);
-      setDistrictNames(names);
+       }
     }
-  }, [provinces, districts]);
+  }, [provinces, districts]); // Depend on provinces and districts from context
 
   // Step 1: Province setup
   const handleProvinceCountChange = (
@@ -127,6 +111,7 @@ const DataSetup: React.FC = () => {
     setNumberOfProvinces(isNaN(value) ? 0 : value);
     setProvinceNames(Array(isNaN(value) ? 0 : value).fill(""));
     setFormError(null);
+    setFormSuccess(null);
   };
   const handleProvinceNameChange = (idx: number, value: string) => {
     const arr = [...provinceNames];
@@ -148,8 +133,6 @@ const DataSetup: React.FC = () => {
     setProvinceStepDone(true);
     setFormError(null);
     setFormSuccess(null);
-    // Save provinces to localStorage for persistence
-    localStorage.setItem("dataSetupProvinces", JSON.stringify(provinceNames));
   };
 
   // Step 2: District setup
@@ -161,6 +144,7 @@ const DataSetup: React.FC = () => {
       [province]: Array(isNaN(v) ? 0 : v).fill(""),
     }));
     setFormError(null);
+    setFormSuccess(null);
   };
   const handleDistrictNameChange = (
     province: string,
@@ -197,11 +181,6 @@ const DataSetup: React.FC = () => {
     setDistrictStepDone(true);
     setFormError(null);
     setFormSuccess(null);
-    // Save district names to localStorage for persistence
-    localStorage.setItem(
-      "dataSetupDistrictNames",
-      JSON.stringify(districtNames)
-    );
   };
 
   // Step 3: Confirm and save
@@ -235,19 +214,15 @@ const DataSetup: React.FC = () => {
           bonusSeatPartyId: null,
         },
       ],
-      totalSeats: 225,
+      totalSeats: 196,
     });
     setConfirmStep(true);
     setFormSuccess("Data setup complete!");
     setFormError(null);
-    // Mark setup as complete in localStorage
-    localStorage.setItem(DATA_SETUP_COMPLETE_KEY, "true");
-    // Save provinces and district names for summary persistence
-    localStorage.setItem("dataSetupProvinces", JSON.stringify(provinceNames));
-    localStorage.setItem(
-      "dataSetupDistrictNames",
-      JSON.stringify(districtNames)
-    );
+    // Mark setup as complete in sessionStorage for the current session
+    sessionStorage.setItem(DATA_SETUP_COMPLETE_KEY, "true");
+    setIsSetupCompleteInSession(true);
+     // The districts and provinces are already saved to context by updateSettings
   };
 
   // Step navigation
@@ -306,7 +281,7 @@ const DataSetup: React.FC = () => {
   );
 
   // If confirmed, show a separate summary page
-  if (confirmStep) {
+  if (isSetupCompleteInSession && confirmStep) {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1
@@ -359,10 +334,15 @@ const DataSetup: React.FC = () => {
                 onClick={() => {
                   setConfirmStep(false);
                   setDistrictStepDone(false);
-                  // Remove the complete flag and temp data so user can edit again
-                  localStorage.removeItem(DATA_SETUP_COMPLETE_KEY);
-                  localStorage.removeItem("dataSetupProvinces");
-                  localStorage.removeItem("dataSetupDistrictNames");
+                  // Clear the completion flag in sessionStorage and state to allow re-setup
+                  sessionStorage.removeItem(DATA_SETUP_COMPLETE_KEY);
+                  setIsSetupCompleteInSession(false);
+                   // Reset local state to initial empty state for setup steps
+                   setNumberOfProvinces(0);
+                   setProvinceNames([]);
+                   setDistrictCounts({});
+                   setDistrictNames({});
+                   setProvinceStepDone(false);
                 }}
               >
                 Edit
@@ -374,7 +354,7 @@ const DataSetup: React.FC = () => {
     );
   }
 
-  // Render the stepper and forms as before
+  // Render the stepper and forms as before if not complete in session
   return (
     <div className="container mx-auto px-4 py-8">
       <h1

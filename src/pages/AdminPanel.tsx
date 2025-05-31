@@ -6,6 +6,20 @@ import { Edit2, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { provinces } from "../data/mockData";
 import { ElectionHistory, electionHistory } from "../data/electionHistory";
 import axios from "axios";
+import ConfigureElectionProvincesDistricts from "../components/ConfigureElectionProvincesDistricts";
+import ConfirmElectionProvincesDistricts from "../components/ConfirmElectionProvincesDistricts";
+
+// Define the interfaces used within AdminPanel.tsx (including SetSeatCounts)
+interface ProvinceConfig {
+  name: string;
+  districts: DistrictConfig[];
+}
+
+// Modified DistrictConfig to include province
+interface DistrictConfig extends District {
+  // No need to omit province here as we need it in this file
+}
+
 const AdminPanel: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(() => {
     const savedStep = localStorage.getItem("adminPanelStep");
@@ -22,11 +36,11 @@ const AdminPanel: React.FC = () => {
   // Check if each step is completed
   const isStepCompleted = {
     step1: year >= 2025, // Only completed if year is 2025 or later
-    step2: true, // Province configuration is always shown as completed
-    step3: true, // More than just "all-districts"
-    step4: true, // Always show as completed like step 1
-    step5: true, // Always show as completed like step 1
-    step6: true, // Assuming step 6 is always completed
+    step2: true, // Configure Provinces & Districts for Year (Assuming completion is handled within component)
+    step3: true, // Confirmation step (Always shown as completed if reached)
+    step4: true, // Set Seat Counts
+    step5: true, // Originally step 5, now removed
+    step6: true, // Originally step 6, now removed
   };
 
   const steps = [
@@ -41,16 +55,17 @@ const AdminPanel: React.FC = () => {
     },
     {
       id: 2,
-      title: "Configure Provinces",
-      description: "Set up provinces for the election",
-      component: <ConfigureProvinces />,
+      title: "Configure Provinces & Districts for Year",
+      description:
+        "Select and modify provinces and districts for the selected election year",
+      component: <ConfigureElectionProvincesDistricts />,
       isCompleted: isStepCompleted.step2,
     },
     {
       id: 3,
-      title: "Configure Districts",
-      description: "Set up districts and allocate seats",
-      component: <ManageDistricts />,
+      title: "Confirm Provinces & Districts",
+      description: "Review the configured provinces and districts",
+      component: <ConfirmElectionProvincesDistricts />,
       isCompleted: isStepCompleted.step3,
     },
     {
@@ -540,7 +555,7 @@ const ManageDistricts: React.FC = () => {
 
     updateSettings?.({
       districts: updatedDistricts,
-      totalSeats: 225,
+      totalSeats: 196,
     });
 
     setFormSuccess("Districts configured successfully");
@@ -1355,35 +1370,39 @@ const ConfigureProvinces: React.FC = () => {
 
 // Set Seat Counts Component
 const SetSeatCounts: React.FC = () => {
-  const { districts, updateSettings } = useElectionData();
+  // Get year-specific data and year from context
+  const {
+    year,
+    electionYearData,
+    updateSettings,
+    districts: globalDistricts,
+    districtSeatInputs,
+    setDistrictSeatInputs,
+  } = useElectionData();
   // Local state for manual-only total seat input
-  const [tempTotalSeatsInput, setTempTotalSeatsInput] = useState<string>("225");
-  const [tempTotalSeats, setTempTotalSeats] = useState<number>(225);
+  const [tempTotalSeatsInput, setTempTotalSeatsInput] = useState<string>("196");
+  const [tempTotalSeats, setTempTotalSeats] = useState<number>(196);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
-  // Get only the districts configured in previous steps
-  const configuredDistricts = districts.filter((d) => d.id !== "all-districts");
+  // Get the year-specific configured districts from electionYearData
+  const yearConfig = electionYearData[year];
+  // Flatten and ensure province is included
+  const configuredDistricts: District[] = yearConfig
+    ? yearConfig.flatMap(
+        (province) =>
+          province.districts.map((district) => ({
+            ...district,
+            province: province.name,
+          })) // Add province name here
+      )
+    : [];
 
-  // Local state for manual-only district seat input
-  const [districtSeatInputs, setDistrictSeatInputs] = useState<
-    Record<string, string>
-  >({});
+  // Remove the useEffect that initializes districtSeatInputs (since context will persist it)
 
   useEffect(() => {
     setTempTotalSeatsInput(tempTotalSeats ? String(tempTotalSeats) : "");
   }, [tempTotalSeats]);
-
-  useEffect(() => {
-    setDistrictSeatInputs(
-      Object.fromEntries(
-        configuredDistricts.map((d) => [
-          d.id,
-          d.seats === 0 ? "" : String(d.seats),
-        ])
-      )
-    );
-  }, [districts]);
 
   const handleDistrictSeatInputChange = (districtId: string, value: string) => {
     setDistrictSeatInputs((prev) => ({
@@ -1395,24 +1414,38 @@ const SetSeatCounts: React.FC = () => {
   const commitDistrictSeatInput = (districtId: string) => {
     const value = districtSeatInputs[districtId];
     if (value === undefined) return;
-    if (value === "") {
-      const updatedDistricts = districts.map((district) =>
-        district.id === districtId ? { ...district, seats: 0 } : district
-      );
-      updateSettings?.({
-        districts: updatedDistricts,
-        totalSeats: tempTotalSeats,
-      });
-    } else if (/^\d+$/.test(value)) {
-      const seats = parseInt(value);
-      const updatedDistricts = districts.map((district) =>
-        district.id === districtId ? { ...district, seats } : district
-      );
-      updateSettings?.({
-        districts: updatedDistricts,
-        totalSeats: tempTotalSeats,
-      });
-    }
+    const seats = value === "" ? 0 : parseInt(value);
+
+    // Update the seats in the year-specific configuration
+    const updatedYearConfig =
+      yearConfig?.map((province) => ({
+        ...province,
+        districts: province.districts.map((district) =>
+          district.id === districtId ? { ...district, seats: seats } : district
+        ),
+      })) || [];
+
+    // Flatten the updated districts to pass to updateSettings
+    const updatedDistrictsFlat: District[] = updatedYearConfig.flatMap(
+      (province) =>
+        province.districts.map((district) => ({
+          ...district,
+          province: province.name,
+        })) // Add province name here again for saving
+    );
+
+    // Include the 'all-districts' placeholder if it exists in the original districts
+    const allDistrictsPlaceholder = globalDistricts.find(
+      (d) => d.id === "all-districts"
+    );
+    const finalDistrictsToSave = allDistrictsPlaceholder
+      ? [...updatedDistrictsFlat, allDistrictsPlaceholder]
+      : updatedDistrictsFlat;
+
+    updateSettings?.({
+      districts: finalDistrictsToSave, // Pass the updated flattened list
+      totalSeats: tempTotalSeats,
+    });
   };
 
   const handleTempTotalSeatsInputChange = (
@@ -1434,7 +1467,13 @@ const SetSeatCounts: React.FC = () => {
       return;
     }
 
-    const currentTotalDistrictSeats = configuredDistricts.reduce(
+    // Use the local input state for seats
+    const updatedDistricts = configuredDistricts.map((district) => ({
+      ...district,
+      seats: parseInt(districtSeatInputs[district.id]) || 0,
+    }));
+
+    const currentTotalDistrictSeats = updatedDistricts.reduce(
       (sum, district) => sum + (district.seats || 0),
       0
     );
@@ -1446,17 +1485,32 @@ const SetSeatCounts: React.FC = () => {
       return;
     }
 
+    // Include the 'all-districts' placeholder if it exists in the original districts
+    const allDistrictsPlaceholder = globalDistricts.find(
+      (d) => d.id === "all-districts"
+    );
+    const finalDistrictsToSave = allDistrictsPlaceholder
+      ? [...updatedDistricts, allDistrictsPlaceholder]
+      : updatedDistricts;
+
     updateSettings?.({
-      districts: districts,
+      districts: finalDistrictsToSave,
       totalSeats: tempTotalSeats,
     });
+
+    // After saving, update local state to reflect saved seats
+    const newInputs: Record<string, string> = {};
+    updatedDistricts.forEach((d) => {
+      newInputs[d.id] = d.seats === 0 ? "" : String(d.seats);
+    });
+    setDistrictSeatInputs(newInputs);
 
     setFormSuccess("Seat configuration updated successfully");
     setTimeout(() => setFormSuccess(null), 3000);
   };
 
-  // If no districts are configured yet, show a message
-  if (configuredDistricts.length === 0) {
+  // If no districts are configured yet for the year, show a message
+  if (!yearConfig || configuredDistricts.length === 0) {
     return (
       <div className={commonStyles.container}>
         <div className={commonStyles.card}>
@@ -1464,7 +1518,7 @@ const SetSeatCounts: React.FC = () => {
           <div className="text-center py-8">
             <p className="text-gray-600">
               Please configure provinces and districts in the previous steps
-              first.
+              first for the selected year.
             </p>
           </div>
         </div>
@@ -1472,8 +1526,9 @@ const SetSeatCounts: React.FC = () => {
     );
   }
 
-  const currentTotalDistrictSeats = configuredDistricts.reduce(
-    (sum, district) => sum + (district.seats || 0),
+  // Calculate current total district seats from local input state
+  const currentTotalDistrictSeats = Object.values(districtSeatInputs).reduce(
+    (sum, val) => sum + (parseInt(val) || 0),
     0
   );
 
@@ -1535,6 +1590,7 @@ const SetSeatCounts: React.FC = () => {
                       <div className="font-medium text-gray-900">
                         {district.name}
                       </div>
+                      {/* Display province name */}
                       <div className="text-sm text-gray-600">
                         {district.province}
                       </div>

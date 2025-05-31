@@ -16,7 +16,7 @@ import React, {
 } from "react";
 import { dataService } from "../utils/dataService";
 import { District, Party, ElectionStats, DistrictVote } from "../types";
-import { sampleElectionData } from '../data/sampleElectionData';
+import { sampleElectionData } from "../data/sampleElectionData";
 
 interface ElectionDataContextType {
   electionData: any[];
@@ -58,6 +58,24 @@ interface ElectionDataContextType {
   ) => void;
   calculatedResults: { [districtId: string]: Party[] };
   setCalculatedResults: (districtId: string, results: Party[]) => void;
+  // New: Year-specific province and district data
+  // Modified to store ProvinceConfig[] directly
+  electionYearData: { [year: number]: ProvinceConfig[] };
+  setElectionYearData: (year: number, data: ProvinceConfig[]) => void;
+  districtSeatInputs: Record<string, string>;
+  setDistrictSeatInputs: React.Dispatch<
+    React.SetStateAction<Record<string, string>>
+  >;
+}
+
+// Define the ProvinceConfig and DistrictConfig interfaces (copying from ConfigureElectionProvincesDistricts.tsx)
+interface ProvinceConfig {
+  name: string;
+  districts: DistrictConfig[];
+}
+
+interface DistrictConfig extends Omit<District, "province"> {
+  // Add any year-specific properties here if needed
 }
 
 const ElectionDataContext = createContext<ElectionDataContextType | undefined>(
@@ -76,10 +94,10 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     totalVotes: 0,
     totalSeats: 0,
     leadingParty: {
-      name: 'N/A',
-      seats: 0
+      name: "N/A",
+      seats: 0,
     },
-    voterTurnout: 75
+    voterTurnout: 75,
   });
   const [selectedDistrictId, setSelectedDistrictId] =
     useState<string>("all-districts");
@@ -88,6 +106,14 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
   }>({});
   const [calculatedResults, setCalculatedResultsState] = useState<{
     [districtId: string]: Party[];
+  }>({});
+  const [districtSeatInputs, setDistrictSeatInputs] = useState<
+    Record<string, string>
+  >({});
+
+  // New state for year-specific data - Modified to store ProvinceConfig[]
+  const [electionYearData, setElectionYearDataState] = useState<{
+    [year: number]: ProvinceConfig[];
   }>({});
 
   // (Removed localStorage for year, use state only)
@@ -115,10 +141,22 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Load data from backend or mock on initial render
   useEffect(() => {
-    dataService.getDistricts().then(setDistricts);
+    dataService.getDistricts().then((loadedDistricts) => {
+      setDistricts(loadedDistricts);
+      // Derive provinces from loaded districts and set the provinces state
+      const uniqueProvinces = Array.from(
+        new Set(loadedDistricts.map((d) => d.province))
+      ).filter((p) => p !== "All"); // Exclude 'All' from the list of provinces
+      setProvinces(uniqueProvinces);
+    });
     dataService.getParties().then(setParties);
     dataService.getElectionStats().then(setElectionStats);
   }, []);
+
+  // New function to set year-specific data - Modified to accept ProvinceConfig[]
+  const setElectionYearData = (year: number, data: ProvinceConfig[]) => {
+    setElectionYearDataState((prev) => ({ ...prev, [year]: data }));
+  };
 
   // (Removed localStorage for district nominations, use state only)
 
@@ -157,7 +195,9 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     votes: number
   ) => {
     // Find the specific party instance for this district
-    const party = parties.find((p) => p.id === partyId && p.districtId === districtId);
+    const party = parties.find(
+      (p) => p.id === partyId && p.districtId === districtId
+    );
     if (!party) return;
 
     // Create a new party object with updated votes
@@ -168,7 +208,9 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
 
     // Update only this specific party instance
     setParties((prev: Party[]) =>
-      prev.map((p: Party) => (p.id === partyId && p.districtId === districtId ? updatedParty : p))
+      prev.map((p: Party) =>
+        p.id === partyId && p.districtId === districtId ? updatedParty : p
+      )
     );
 
     // Update district's bonus seat party if needed
@@ -188,7 +230,9 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     partyData: Omit<Party, "id" | "percentage" | "seats" | "hasBonusSeat">
   ) => {
     // Create a unique ID that includes both party name and district
-    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${partyData.districtId}-${Date.now()}`;
+    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${
+      partyData.districtId
+    }-${Date.now()}`;
     const district = districts.find((d) => d.id === partyData.districtId);
     if (!district) return;
 
@@ -348,7 +392,7 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       ...prev,
       totalVotes,
       participatingParties,
-      totalSeats: 225, // Always maintain the default value
+      totalSeats: 196, // Always maintain the default value
     }));
   };
 
@@ -361,9 +405,9 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
 
   // Add function to set calculated results
   const setCalculatedResults = (districtId: string, results: Party[]) => {
-    setCalculatedResultsState(prev => ({
+    setCalculatedResultsState((prev) => ({
       ...prev,
-      [districtId]: results
+      [districtId]: results,
     }));
   };
 
@@ -390,6 +434,11 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     updatePartyVotes,
     calculatedResults,
     setCalculatedResults,
+    // New: Year-specific data
+    electionYearData,
+    setElectionYearData,
+    districtSeatInputs,
+    setDistrictSeatInputs,
   };
 
   return (
