@@ -5,7 +5,7 @@ import { Menu, X } from "lucide-react";
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const userType = localStorage.getItem('userType');
+  const userType = localStorage.getItem("userType");
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -43,20 +43,32 @@ const Header: React.FC = () => {
             <NavLink to="/home" isActive={isActiveLink("/home")}>
               Home
             </NavLink>
-            {userType === 'admin' && (
-              <NavLink to="/admin" isActive={isActiveLink("/admin")}>
-                Admin Panel
-              </NavLink>
-            )}
-            {userType === 'admin' && (
-              <NavLink to="/election-process" isActive={isActiveLink("/election-process")}>
-                Election Process
-              </NavLink>
+            <NavLink to="/data-setup" isActive={isActiveLink("/data-setup")}>
+              Data Setup
+            </NavLink>
+            {userType === "admin" && (
+              <>
+                <NavLink to="/admin" isActive={isActiveLink("/admin")}>
+                  Admin Panel
+                </NavLink>
+                <NavLink
+                  to="/party-registration"
+                  isActive={isActiveLink("/party-registration")}
+                >
+                  Party Registration
+                </NavLink>
+                <NavLink
+                  to="/election-process"
+                  isActive={isActiveLink("/election-process")}
+                >
+                  Election Process
+                </NavLink>
+              </>
             )}
             <NavLink to="/results" isActive={isActiveLink("/results")}>
               Results
             </NavLink>
-            {userType !== 'admin' && (
+            {userType !== "admin" && (
               <>
                 <NavLink to="/about" isActive={isActiveLink("/about")}>
                   About
@@ -103,23 +115,37 @@ const Header: React.FC = () => {
           >
             Home
           </MobileNavLink>
-          {userType === 'admin' && (
-            <MobileNavLink
-              to="/admin"
-              isActive={isActiveLink("/admin")}
-              onClick={closeMenu}
-            >
-              Admin Panel
-            </MobileNavLink>
-          )}
-          {userType === 'admin' && (
-            <MobileNavLink
-              to="/election-process"
-              isActive={isActiveLink("/election-process")}
-              onClick={closeMenu}
-            >
-              Election Process
-            </MobileNavLink>
+          <MobileNavLink
+            to="/data-setup"
+            isActive={isActiveLink("/data-setup")}
+            onClick={closeMenu}
+          >
+            Data Setup
+          </MobileNavLink>
+          {userType === "admin" && (
+            <>
+              <MobileNavLink
+                to="/admin"
+                isActive={isActiveLink("/admin")}
+                onClick={closeMenu}
+              >
+                Admin Panel
+              </MobileNavLink>
+              <MobileNavLink
+                to="/party-registration"
+                isActive={isActiveLink("/party-registration")}
+                onClick={closeMenu}
+              >
+                Party Registration
+              </MobileNavLink>
+              <MobileNavLink
+                to="/election-process"
+                isActive={isActiveLink("/election-process")}
+                onClick={closeMenu}
+              >
+                Election Process
+              </MobileNavLink>
+            </>
           )}
           <MobileNavLink
             to="/results"
@@ -128,7 +154,7 @@ const Header: React.FC = () => {
           >
             Results
           </MobileNavLink>
-          {userType !== 'admin' && (
+          {userType !== "admin" && (
             <>
               <MobileNavLink
                 to="/about"

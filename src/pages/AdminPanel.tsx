@@ -60,21 +60,10 @@ const AdminPanel: React.FC = () => {
       component: <SetSeatCounts />,
       isCompleted: isStepCompleted.step4,
     },
-    {
-      id: 5,
-      title: "Add Parties",
-      description: "Register political parties",
-      component: <ManageParties />,
-      isCompleted: isStepCompleted.step5,
-    },
-    {
-      id: 6,
-      title: "Assign Parties to Districts",
-      description: "Nominate parties for each district",
-      component: <AssignPartiesToDistricts />,
-      isCompleted: isStepCompleted.step6,
-    },
   ];
+
+  // Prevent out-of-bounds currentStep
+  const safeCurrentStep = Math.max(1, Math.min(currentStep, steps.length));
 
   return (
     <div className="container mx-auto px-4 py-8 relative">
@@ -135,10 +124,12 @@ const AdminPanel: React.FC = () => {
           </button>
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-800">
-              {steps[currentStep - 1].title}
+              {steps[currentStep - 1 < steps.length ? currentStep - 1 : 0]
+                ?.title || ""}
             </h2>
             <p className="text-sm text-gray-600">
-              {steps[currentStep - 1].description}
+              {steps[currentStep - 1 < steps.length ? currentStep - 1 : 0]
+                ?.description || ""}
             </p>
           </div>
           <button
@@ -160,7 +151,8 @@ const AdminPanel: React.FC = () => {
       {/* Current Step Content */}
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
-          {steps[currentStep - 1].component}
+          {steps[currentStep - 1 < steps.length ? currentStep - 1 : 0]
+            ?.component || null}
         </div>
       </div>
     </div>
