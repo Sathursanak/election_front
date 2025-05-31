@@ -569,7 +569,7 @@ const PartyRegistration: React.FC = () => {
               className={commonStyles.button.primary}
               onClick={() => setStep(2)}
             >
-              Next
+              Assin Parties to Districts
             </button>
           ) : (
             <span />

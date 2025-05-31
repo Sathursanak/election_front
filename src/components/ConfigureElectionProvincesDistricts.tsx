@@ -121,7 +121,7 @@ const ConfigureElectionProvincesDistricts: React.FC = () => {
                 className="border rounded px-2 py-1 text-lg font-semibold mr-2"
               />
               <button onClick={() => handleDeleteProvince(provinceIndex)} className="text-red-600 hover:text-red-800" title="Delete Province"><MinusCircle size={18} /></button>
-              <button onClick={() => handleAddDistrict(provinceIndex)} className="text-green-600 hover:text-green-800 ml-auto" title="Add District"><PlusCircle size={18} /></button>
+              <button onClick={() => handleAddDistrict(provinceIndex)} className="text-teal-600 hover:text-teal-800 ml-auto" title="Add District"><PlusCircle size={18} /></button>
             </div>
             <ul className="ml-6 list-disc">
               {province.districts.map((district, districtIndex) => (
@@ -144,7 +144,7 @@ const ConfigureElectionProvincesDistricts: React.FC = () => {
                   placeholder="New District Name"
                   className="border rounded px-2 py-1 mr-2"
                 />
-                <button onClick={() => handleAddDistrict(provinceIndex)} className="bg-green-500 text-white px-2 py-1 rounded text-sm">Add</button>
+                <button onClick={() => handleAddDistrict(provinceIndex)} className="bg-teal-600 text-white px-4 py-1 rounded hover:bg-teal-700">Add</button>
               </li>
             </ul>
           </div>
@@ -162,7 +162,7 @@ const ConfigureElectionProvincesDistricts: React.FC = () => {
             placeholder="New Province Name"
             className="border rounded px-2 py-1 mr-2"
           />
-          <button onClick={handleAddProvince} className="bg-green-500 text-white px-4 py-2 rounded">Add Province</button>
+          <button onClick={handleAddProvince} className="bg-teal-600 text-white px-4 py-1 rounded hover:bg-teal-700">Add Province</button>
         </div>
       </div>
 
