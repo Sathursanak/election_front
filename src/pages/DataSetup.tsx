@@ -159,6 +159,14 @@ const DataSetup: React.FC = () => {
     setFormError(null);
   };
   const handleDistrictNext = () => {
+    // Check if each province has at least one district
+    for (const p of provinceNames) {
+      if (!districtCounts[p] || districtCounts[p] < 1) {
+        setFormError(`Each province must have at least one district. Please add districts for ${p}`);
+        return;
+      }
+    }
+
     // Validate all names
     for (const p of provinceNames) {
       if ((districtNames[p] || []).some((n) => !n.trim())) {
@@ -166,7 +174,19 @@ const DataSetup: React.FC = () => {
         return;
       }
     }
-    // Check for duplicates
+
+    // Check if any district name matches a province name
+    const allDistrictNames = Object.values(districtNames).flat();
+    for (const districtName of allDistrictNames) {
+      if (provinceNames.some(province => 
+        province.trim().toLowerCase() === districtName.trim().toLowerCase()
+      )) {
+        setFormError("District names cannot be the same as province names");
+        return;
+      }
+    }
+
+    // Check for duplicates across all districts
     const allNames = Object.values(districtNames).flat();
     const hasDup = allNames.some(
       (n, i) =>
@@ -178,6 +198,7 @@ const DataSetup: React.FC = () => {
       setFormError("District names must be unique across all provinces");
       return;
     }
+
     setDistrictStepDone(true);
     setFormError(null);
     setFormSuccess(null);

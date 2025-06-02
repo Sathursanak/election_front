@@ -22,6 +22,15 @@ interface DistrictConfig extends District {
 
 const AdminPanel: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(() => {
+    // Check if this is a fresh page load (reload)
+    const isReload = !sessionStorage.getItem('adminPanelVisited');
+    if (isReload) {
+      // Mark as visited and reset to step 1
+      sessionStorage.setItem('adminPanelVisited', 'true');
+      localStorage.setItem("adminPanelStep", "1");
+      return 1;
+    }
+    // For navigation, use the saved step
     const savedStep = localStorage.getItem("adminPanelStep");
     return savedStep ? parseInt(savedStep) : 1;
   });

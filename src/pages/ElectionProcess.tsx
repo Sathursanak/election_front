@@ -254,9 +254,12 @@ const ElectionProcess: React.FC = () => {
   }, [selectedDistrictId, districts, parties]);
 
   const handlePartyVotesChange = (partyId: string, value: string) => {
+    // Remove leading zeros and convert to number
+    const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, '') || '0');
+    
     setLocalDistrictParties(prev =>
       prev.map(p =>
-        p.id === partyId ? { ...p, votes: parseInt(value) || 0 } : p
+        p.id === partyId ? { ...p, votes: numericValue } : p
       )
     );
     setCalculationDone(false);
@@ -271,16 +274,26 @@ const ElectionProcess: React.FC = () => {
       (sum, p) => sum + (p.votes || 0),
       0
     );
+
     if (localDistrictParties.some((p) => p.votes < 0 || isNaN(p.votes))) {
       setPartyVotesError("Votes must be non-negative numbers for all parties.");
       return;
     }
-    if (selectedDistrict && totalPartyVotes > selectedDistrict.totalVotes) {
+
+    if (!selectedDistrict) {
+      setPartyVotesError("No district selected.");
+      return;
+    }
+
+    const validVotes = selectedDistrict.totalVotes - selectedDistrict.rejectedVotes;
+    
+    if (totalPartyVotes !== validVotes) {
       setPartyVotesError(
-        "Sum of party votes cannot exceed total votes for the district."
+        `Sum of party votes (${totalPartyVotes}) must exactly equal valid votes (${validVotes}).`
       );
       return;
     }
+
     try {
       // Update each party's votes for this specific district only
       for (const party of localDistrictParties) {
@@ -357,6 +370,16 @@ const ElectionProcess: React.FC = () => {
       }
     }
   }, [selectedDistrictId, localDistrictParties, calculatedParties]);
+
+  const handleVoteFormChange = (field: 'totalVotes' | 'rejectedVotes', value: string) => {
+    // Remove leading zeros and convert to number
+    const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, '') || '0');
+    
+    setVoteFormData(prev => ({
+      ...prev,
+      [field]: numericValue
+    }));
+  };
 
   const handleVoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -559,7 +582,7 @@ const ElectionProcess: React.FC = () => {
                                     type="number"
                                     min={0}
                                     className="w-24 px-2 py-1 border border-gray-300 rounded"
-                                    value={party.votes}
+                                    value={party.votes === 0 ? '' : party.votes}
                                     disabled={calculationDone}
                                     onChange={(e) =>
                                       handlePartyVotesChange(
@@ -653,13 +676,8 @@ const ElectionProcess: React.FC = () => {
                   type="number"
                   min="0"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={voteFormData.totalVotes}
-                  onChange={(e) =>
-                    setVoteFormData((prev) => ({
-                      ...prev,
-                      totalVotes: parseInt(e.target.value) || 0,
-                    }))
-                  }
+                  value={voteFormData.totalVotes === 0 ? '' : voteFormData.totalVotes}
+                  onChange={(e) => handleVoteFormChange('totalVotes', e.target.value)}
                 />
               </div>
               <div>
@@ -671,13 +689,8 @@ const ElectionProcess: React.FC = () => {
                   min="0"
                   max={voteFormData.totalVotes}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={voteFormData.rejectedVotes}
-                  onChange={(e) =>
-                    setVoteFormData((prev) => ({
-                      ...prev,
-                      rejectedVotes: parseInt(e.target.value) || 0,
-                    }))
-                  }
+                  value={voteFormData.rejectedVotes === 0 ? '' : voteFormData.rejectedVotes}
+                  onChange={(e) => handleVoteFormChange('rejectedVotes', e.target.value)}
                 />
               </div>
               <button

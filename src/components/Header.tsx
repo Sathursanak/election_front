@@ -43,13 +43,13 @@ const Header: React.FC = () => {
             <NavLink to="/home" isActive={isActiveLink("/home")}>
               Home
             </NavLink>
-            <NavLink to="/data-setup" isActive={isActiveLink("/data-setup")}>
-              Data Setup
-            </NavLink>
             {userType === "admin" && (
               <>
+                <NavLink to="/data-setup" isActive={isActiveLink("/data-setup")}>
+                  Data Setup
+                </NavLink>
                 <NavLink to="/admin" isActive={isActiveLink("/admin")}>
-                  Admin Panel
+                 Election Setup
                 </NavLink>
                 <NavLink
                   to="/party-registration"
@@ -115,21 +115,22 @@ const Header: React.FC = () => {
           >
             Home
           </MobileNavLink>
-          <MobileNavLink
-            to="/data-setup"
-            isActive={isActiveLink("/data-setup")}
-            onClick={closeMenu}
-          >
-            Data Setup
-          </MobileNavLink>
+          
           {userType === "admin" && (
             <>
+              <MobileNavLink
+                to="/data-setup"
+                isActive={isActiveLink("/data-setup")}
+                onClick={closeMenu}
+              >
+                Data Setup
+              </MobileNavLink>
               <MobileNavLink
                 to="/admin"
                 isActive={isActiveLink("/admin")}
                 onClick={closeMenu}
               >
-                Admin Panel
+                Election Setup
               </MobileNavLink>
               <MobileNavLink
                 to="/party-registration"

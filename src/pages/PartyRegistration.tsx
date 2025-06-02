@@ -322,13 +322,27 @@ const ManageParties: React.FC = () => {
 };
 
 // --- AssignPartiesToDistricts Component (copied from AdminPanel) ---
-const AssignPartiesToDistricts: React.FC = () => {
+const AssignPartiesToDistricts: React.FC<{
+  onComplete: () => void;
+}> = ({ onComplete }) => {
   const { districts, parties, districtNominations, setDistrictNominations } =
     useElectionData();
   const [formSuccess, setFormSuccess] = React.useState<string | null>(null);
   const districtOptions = districts.filter(
     (d: any) => d.id !== "all-districts"
   );
+
+  // Check if all districts have at least one party assigned
+  const isAllDistrictsAssigned = districtOptions.every(
+    (district: any) => (districtNominations[district.id] || []).length > 0
+  );
+
+  const handleComplete = () => {
+    onComplete();
+    setFormSuccess("Party assignments completed successfully!");
+    setTimeout(() => setFormSuccess(null), 3000);
+  };
+
   const handleCheck = (districtId: string, partyId: string) => {
     const nominated = districtNominations[districtId] || [];
     let updated: string[];
@@ -345,6 +359,7 @@ const AssignPartiesToDistricts: React.FC = () => {
     );
     setTimeout(() => setFormSuccess(null), 1500);
   };
+
   return (
     <div className={commonStyles.container}>
       <h2 className={commonStyles.title}>Assign Parties to Districts</h2>
@@ -461,12 +476,32 @@ const AssignPartiesToDistricts: React.FC = () => {
           })}
         </div>
       </div>
+      <div className="mt-8 flex justify-end">
+        <button
+          onClick={handleComplete}
+          disabled={!isAllDistrictsAssigned}
+          className={`${commonStyles.button.primary} ${
+            !isAllDistrictsAssigned ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          Complete Assignment
+        </button>
+      </div>
     </div>
   );
 };
 
 const PartyRegistration: React.FC = () => {
   const [step, setStep] = React.useState(1);
+  const [completedSteps, setCompletedSteps] = React.useState<number[]>([]);
+
+  const handleStepChange = (newStep: number) => {
+    if (newStep > step) {
+      // When moving forward, mark current step as completed
+      setCompletedSteps(prev => [...prev, step]);
+    }
+    setStep(newStep);
+  };
 
   const steps = [
     {
@@ -477,7 +512,9 @@ const PartyRegistration: React.FC = () => {
     {
       id: 2,
       title: "Assign Parties to Districts",
-      component: <AssignPartiesToDistricts />,
+      component: <AssignPartiesToDistricts onComplete={() => {
+        setCompletedSteps(prev => [...prev, 2]);
+      }} />,
     },
   ];
 
@@ -497,13 +534,13 @@ const PartyRegistration: React.FC = () => {
                   ${
                     step === s.id
                       ? "border-teal-600 bg-teal-50"
-                      : step > s.id
+                      : completedSteps.includes(s.id)
                       ? "border-green-500 bg-green-50"
                       : "border-gray-300 bg-gray-50"
                   }
                 `}
               >
-                {step > s.id ? (
+                {completedSteps.includes(s.id) ? (
                   <svg
                     className="w-6 h-6 text-green-500"
                     fill="none"
@@ -538,7 +575,7 @@ const PartyRegistration: React.FC = () => {
             {idx < steps.length - 1 && (
               <div
                 className={`flex-1 h-0.5 ${
-                  step > s.id ? "bg-green-500" : "bg-gray-300"
+                  completedSteps.includes(s.id) ? "bg-green-500" : "bg-gray-300"
                 }`}
               ></div>
             )}
@@ -556,7 +593,7 @@ const PartyRegistration: React.FC = () => {
           {step === 2 ? (
             <button
               className={commonStyles.button.secondary}
-              onClick={() => setStep(1)}
+              onClick={() => handleStepChange(1)}
             >
               Edit Party Details
             </button>
@@ -567,9 +604,9 @@ const PartyRegistration: React.FC = () => {
           {step === 1 ? (
             <button
               className={commonStyles.button.primary}
-              onClick={() => setStep(2)}
+              onClick={() => handleStepChange(2)}
             >
-              Assin Parties to Districts
+              Assign Parties to Districts
             </button>
           ) : (
             <span />
