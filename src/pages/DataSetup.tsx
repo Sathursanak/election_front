@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
+import { dataService } from "../utils/dataService";
+import { IProvince } from "../types";
 
 // Common styles for all step components (copied from AdminPanel)
 const commonStyles = {
@@ -72,24 +74,8 @@ const DataSetup: React.FC = () => {
     if (isComplete) {
       // If setup is complete in session, load data from context to display summary
       if (provinces.length > 0 && districts.length > 0) {
-         setProvinceNames(provinces);
-         setNumberOfProvinces(provinces.length);
-         const counts: Record<string, number> = {};
-         const names: Record<string, string[]> = {};
-         provinces.forEach((p) => {
-           const dists = districts.filter((d) => d.province === p);
-           counts[p] = dists.length;
-           names[p] = dists.map((d) => d.name);
-         });
-         setDistrictCounts(counts);
-         setDistrictNames(names);
-         setConfirmStep(true); // Ensure summary is shown
-      }
-    } else if (provinces.length > 0) {
-      // If not complete in session, initialize state based on default provinces and districts from context
-      setProvinceNames(provinces);
-      setNumberOfProvinces(provinces.length);
-       if (districts.length > 0) {
+        setProvinceNames(provinces);
+        setNumberOfProvinces(provinces.length);
         const counts: Record<string, number> = {};
         const names: Record<string, string[]> = {};
         provinces.forEach((p) => {
@@ -99,7 +85,23 @@ const DataSetup: React.FC = () => {
         });
         setDistrictCounts(counts);
         setDistrictNames(names);
-       }
+        setConfirmStep(true); // Ensure summary is shown
+      }
+    } else if (provinces.length > 0) {
+      // If not complete in session, initialize state based on default provinces and districts from context
+      setProvinceNames(provinces);
+      setNumberOfProvinces(provinces.length);
+      if (districts.length > 0) {
+        const counts: Record<string, number> = {};
+        const names: Record<string, string[]> = {};
+        provinces.forEach((p) => {
+          const dists = districts.filter((d) => d.province === p);
+          counts[p] = dists.length;
+          names[p] = dists.map((d) => d.name);
+        });
+        setDistrictCounts(counts);
+        setDistrictNames(names);
+      }
     }
   }, [provinces, districts]); // Depend on provinces and districts from context
 
@@ -110,15 +112,34 @@ const DataSetup: React.FC = () => {
     const value = parseInt(e.target.value.replace(/[^\d]/g, ""));
     setNumberOfProvinces(isNaN(value) ? 0 : value);
     setProvinceNames(Array(isNaN(value) ? 0 : value).fill(""));
+    setDistrictCounts({});
     setFormError(null);
     setFormSuccess(null);
   };
+
   const handleProvinceNameChange = (idx: number, value: string) => {
     const arr = [...provinceNames];
     arr[idx] = value;
     setProvinceNames(arr);
     setFormError(null);
   };
+
+  const handleProvinceDistrictCountChange = (idx: number, value: string) => {
+    const count = parseInt(value.replace(/[^\d]/g, ""));
+    const provinceName = provinceNames[idx];
+    if (provinceName) {
+      setDistrictCounts(prev => ({
+        ...prev,
+        [provinceName]: isNaN(count) ? 0 : count
+      }));
+      setDistrictNames(prev => ({
+        ...prev,
+        [provinceName]: Array(isNaN(count) ? 0 : count).fill("")
+      }));
+    }
+    setFormError(null);
+  };
+
   const handleProvinceNext = () => {
     if (provinceNames.some((n) => !n.trim())) {
       setFormError("All province names must be filled");
@@ -129,6 +150,27 @@ const DataSetup: React.FC = () => {
       setFormError("Province names must be unique");
       return;
     }
+
+    const payload: IProvince[] = provinceNames.map((province, index) => ({
+      provinceName: province,
+      noOfDistricts: districtCounts[province] || 0,
+    }));
+    // Check if all provinces have district counts
+    for (const province of provinceNames) {
+      if (!districtCounts[province] || districtCounts[province] < 1) {
+        setFormError(`Please specify number of districts for ${province}`);
+        return;
+      }
+    }
+
+
+    dataService.addProvince(payload[0]).then((res) => {
+
+
+    }, (err) => {
+      console.log(err);
+    })
+
     setProvinces([...provinceNames]);
     setProvinceStepDone(true);
     setFormError(null);
@@ -144,7 +186,6 @@ const DataSetup: React.FC = () => {
       [province]: Array(isNaN(v) ? 0 : v).fill(""),
     }));
     setFormError(null);
-    setFormSuccess(null);
   };
   const handleDistrictNameChange = (
     province: string,
@@ -178,7 +219,7 @@ const DataSetup: React.FC = () => {
     // Check if any district name matches a province name
     const allDistrictNames = Object.values(districtNames).flat();
     for (const districtName of allDistrictNames) {
-      if (provinceNames.some(province => 
+      if (provinceNames.some(province =>
         province.trim().toLowerCase() === districtName.trim().toLowerCase()
       )) {
         setFormError("District names cannot be the same as province names");
@@ -243,27 +284,26 @@ const DataSetup: React.FC = () => {
     // Mark setup as complete in sessionStorage for the current session
     sessionStorage.setItem(DATA_SETUP_COMPLETE_KEY, "true");
     setIsSetupCompleteInSession(true);
-     // The districts and provinces are already saved to context by updateSettings
+    // The districts and provinces are already saved to context by updateSettings
   };
 
   // Step navigation
   const step = confirmStep
     ? 3
     : districtStepDone
-    ? 2
-    : provinceStepDone
-    ? 1
-    : 0;
+      ? 2
+      : provinceStepDone
+        ? 1
+        : 0;
 
   // Helper for stepper style
   const stepCircle = (num: number, label: string) => (
     <div className="flex flex-col items-center flex-1">
       <div
         className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
-          ${
-            step === num
-              ? "border-teal-600 bg-teal-50"
-              : step > num
+          ${step === num
+            ? "border-teal-600 bg-teal-50"
+            : step > num
               ? "border-green-500 bg-green-50"
               : "border-gray-300 bg-gray-50"
           }
@@ -285,9 +325,8 @@ const DataSetup: React.FC = () => {
           </svg>
         ) : (
           <svg
-            className={`w-6 h-6 ${
-              step === num ? "text-teal-600" : "text-gray-400"
-            }`}
+            className={`w-6 h-6 ${step === num ? "text-teal-600" : "text-gray-400"
+              }`}
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
@@ -350,24 +389,7 @@ const DataSetup: React.FC = () => {
               </tbody>
             </table>
             <div className="flex justify-end mt-8">
-              <button
-                className={commonStyles.button.primary}
-                onClick={() => {
-                  setConfirmStep(false);
-                  setDistrictStepDone(false);
-                  // Clear the completion flag in sessionStorage and state to allow re-setup
-                  sessionStorage.removeItem(DATA_SETUP_COMPLETE_KEY);
-                  setIsSetupCompleteInSession(false);
-                   // Reset local state to initial empty state for setup steps
-                   setNumberOfProvinces(0);
-                   setProvinceNames([]);
-                   setDistrictCounts({});
-                   setDistrictNames({});
-                   setProvinceStepDone(false);
-                }}
-              >
-                Edit
-              </button>
+              {/* Edit button removed */}
             </div>
           </div>
         </div>
@@ -387,15 +409,13 @@ const DataSetup: React.FC = () => {
       <div className="mb-10 flex items-center justify-center gap-0 w-full max-w-2xl mx-auto">
         {stepCircle(0, "Provinces")}
         <div
-          className={`flex-1 h-0.5 ${
-            step > 0 ? "bg-green-500" : "bg-gray-300"
-          }`}
+          className={`flex-1 h-0.5 ${step > 0 ? "bg-green-500" : "bg-gray-300"
+            }`}
         ></div>
         {stepCircle(1, "Districts")}
         <div
-          className={`flex-1 h-0.5 ${
-            step > 1 ? "bg-green-500" : "bg-gray-300"
-          }`}
+          className={`flex-1 h-0.5 ${step > 1 ? "bg-green-500" : "bg-gray-300"
+            }`}
         ></div>
         {stepCircle(2, "Confirm")}
       </div>
@@ -428,22 +448,40 @@ const DataSetup: React.FC = () => {
                 />
               </div>
               {numberOfProvinces > 0 && (
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
                   {provinceNames.map((name, idx) => (
-                    <div key={idx} className="mb-4">
-                      <label className={commonStyles.label}>
-                        Province {idx + 1}
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) =>
-                          handleProvinceNameChange(idx, e.target.value)
-                        }
-                        className={commonStyles.input}
-                        required
-                        placeholder={`Enter name for Province ${idx + 1}`}
-                      />
+                    <div key={idx} className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <label className={commonStyles.label}>
+                          Province {idx + 1}
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) =>
+                            handleProvinceNameChange(idx, e.target.value)
+                          }
+                          className={commonStyles.input}
+                          required
+                          placeholder={`Enter name for Province ${idx + 1}`}
+                        />
+                      </div>
+                      <div className="w-48">
+                        <label className={commonStyles.label}>
+                          Number of Districts
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={districtCounts[name] || ""}
+                          onChange={(e) =>
+                            handleProvinceDistrictCountChange(idx, e.target.value)
+                          }
+                          className={commonStyles.input}
+                          required
+                          placeholder="Enter number"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -453,7 +491,7 @@ const DataSetup: React.FC = () => {
                   className={commonStyles.button.primary}
                   onClick={handleProvinceNext}
                 >
-                  Next
+                  Save and Continue
                 </button>
               </div>
             </>
@@ -463,32 +501,23 @@ const DataSetup: React.FC = () => {
           {provinceStepDone && !districtStepDone && (
             <>
               <h2 className={`${commonStyles.title} mb-6`}>Districts Setup</h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                {provinceNames.map((province) => (
-                  <div
-                    key={province}
-                    className={`border rounded-xl p-6 bg-gray-50 ${commonStyles.card}`}
-                  >
-                    <label className={commonStyles.label}>
-                      {province} - Number of Districts
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={districtCounts[province] ?? ""}
-                      onChange={(e) =>
-                        handleDistrictCountChange(province, e.target.value)
-                      }
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 mb-4 ${commonStyles.input}`}
-                      placeholder="Number of districts"
-                      autoComplete="off"
-                    />
-                    {districtCounts[province] > 0 && (
-                      <>
-                        <h4 className={commonStyles.label}>Districts</h4>
-                        <div className="grid grid-cols-1 gap-2">
-                          {Array.from({ length: districtCounts[province] }).map(
-                            (_, idx) => (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Districts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {provinceNames.map((province) => (
+                      <tr key={province}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {province}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="grid grid-cols-1 gap-2">
+                            {Array.from({ length: districtCounts[province] || 0 }).map((_, idx) => (
                               <input
                                 key={idx}
                                 type="text"
@@ -504,13 +533,13 @@ const DataSetup: React.FC = () => {
                                 required
                                 placeholder={`District ${idx + 1} name`}
                               />
-                            )
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
               <div className="mt-8 flex justify-between">
                 <button

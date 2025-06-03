@@ -38,3 +38,9 @@ export interface ElectionStats {
   totalSeats: number;
   participatingParties: number;
 }
+
+export interface IProvince {
+  id?: string;
+  provinceName: string;
+  noOfDistricts: number;
+}
