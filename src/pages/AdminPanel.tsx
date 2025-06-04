@@ -102,13 +102,12 @@ const AdminPanel: React.FC = () => {
             <React.Fragment key={step.id}>
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    currentStep === step.id
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${currentStep === step.id
                       ? "border-teal-600 bg-teal-50"
                       : step.isCompleted
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-300 bg-gray-50"
-                  }`}
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-300 bg-gray-50"
+                    }`}
                 >
                   {step.isCompleted ? (
                     <CheckCircle2 className="w-6 h-6 text-green-500" />
@@ -122,9 +121,8 @@ const AdminPanel: React.FC = () => {
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 ${
-                    step.isCompleted ? "bg-green-500" : "bg-gray-300"
-                  }`}
+                  className={`flex-1 h-0.5 ${step.isCompleted ? "bg-green-500" : "bg-gray-300"
+                    }`}
                 />
               )}
             </React.Fragment>
@@ -138,11 +136,10 @@ const AdminPanel: React.FC = () => {
           <button
             onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
             disabled={currentStep === 1}
-            className={`px-4 py-2 rounded-md ${
-              currentStep === 1
+            className={`px-4 py-2 rounded-md ${currentStep === 1
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-teal-600 text-white hover:bg-teal-700"
-            }`}
+              }`}
           >
             Previous Step
           </button>
@@ -161,11 +158,10 @@ const AdminPanel: React.FC = () => {
               setCurrentStep((prev) => Math.min(steps.length, prev + 1))
             }
             disabled={currentStep === steps.length}
-            className={`px-4 py-2 rounded-md ${
-              currentStep === steps.length
+            className={`px-4 py-2 rounded-md ${currentStep === steps.length
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-teal-600 text-white hover:bg-teal-700"
-            }`}
+              }`}
           >
             Next Step
           </button>
@@ -1019,8 +1015,7 @@ const AssignPartiesToDistricts: React.FC = () => {
     }
     setDistrictNominations(districtId, updated);
     setFormSuccess(
-      `Nominations updated for ${
-        districts.find((d) => d.id === districtId)?.name
+      `Nominations updated for ${districts.find((d) => d.id === districtId)?.name
       }`
     );
     setTimeout(() => setFormSuccess(null), 1500);
@@ -1043,11 +1038,10 @@ const AssignPartiesToDistricts: React.FC = () => {
                   {district.name}
                 </span>
                 <span
-                  className={`text-xs px-2 py-1 rounded ${
-                    nominated.length > 0
+                  className={`text-xs px-2 py-1 rounded ${nominated.length > 0
                       ? "bg-green-100 text-green-800"
                       : "bg-gray-200 text-gray-600"
-                  }`}
+                    }`}
                 >
                   {nominated.length > 0
                     ? `${nominated.length} assigned`
@@ -1108,20 +1102,18 @@ const AssignPartiesToDistricts: React.FC = () => {
             return (
               <div
                 key={district.id}
-                className={`p-4 border rounded-lg ${
-                  isComplete ? "bg-green-50 border-green-200" : "bg-gray-50"
-                }`}
+                className={`p-4 border rounded-lg ${isComplete ? "bg-green-50 border-green-200" : "bg-gray-50"
+                  }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-700">
                     {district.name}
                   </span>
                   <span
-                    className={`text-xs font-medium px-2 py-1 rounded ${
-                      isComplete
+                    className={`text-xs font-medium px-2 py-1 rounded ${isComplete
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-200 text-gray-600"
-                    }`}
+                      }`}
                   >
                     {isComplete
                       ? `${nominated.length} parties nominated`
@@ -1399,12 +1391,12 @@ const SetSeatCounts: React.FC = () => {
   // Flatten and ensure province is included
   const configuredDistricts: District[] = yearConfig
     ? yearConfig.flatMap(
-        (province) =>
-          province.districts.map((district) => ({
-            ...district,
-            province: province.name,
-          })) // Add province name here
-      )
+      (province) =>
+        province.districts.map((district) => ({
+          ...district,
+          province: province.name,
+        })) // Add province name here
+    )
     : [];
 
   // Remove the useEffect that initializes districtSeatInputs (since context will persist it)

@@ -82,23 +82,47 @@ const ElectionDataContext = createContext<ElectionDataContextType | undefined>(
   undefined
 );
 
-export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [electionData] = useState(sampleElectionData);
-  const [year, setYear] = useState(2025);
+export const ElectionDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [districts, setDistricts] = useState<District[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
+  const [electionStats, setElectionStats] = useState<ElectionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [provinces, setProvinces] = useState<string[]>([]);
-  const [electionStats, setElectionStats] = useState({
-    totalVotes: 0,
-    totalSeats: 0,
-    leadingParty: {
-      name: "N/A",
-      seats: 0,
-    },
-    voterTurnout: 75,
-  });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [loadedDistricts, loadedParties, loadedStats, loadedProvinces] = await Promise.all([
+          dataService.getDistricts(),
+          dataService.getParties(),
+          dataService.getElectionStats(),
+          dataService.getProvince()
+        ]);
+
+        setDistricts(Array.isArray(loadedDistricts) ? loadedDistricts : []);
+        setParties(Array.isArray(loadedParties) ? loadedParties : []);
+        setElectionStats(loadedStats || null);
+        setProvinces(loadedProvinces.map(p => p.provinceName));
+        setError(null);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Failed to load data. Please try again later.');
+        setDistricts([]);
+        setParties([]);
+        setElectionStats(null);
+        setProvinces([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const [electionData] = useState(sampleElectionData);
+  const [year, setYear] = useState(2025);
   const [selectedDistrictId, setSelectedDistrictId] =
     useState<string>("all-districts");
   const [districtNominations, setDistrictNominationsState] = useState<{
@@ -115,8 +139,6 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
   const [electionYearData, setElectionYearDataState] = useState<{
     [year: number]: ProvinceConfig[];
   }>({});
-
-  // (Removed localStorage for year, use state only)
 
   // Update settings and ensure total seats consistency (backend-ready)
   const updateSettings = async (settings: {
@@ -139,26 +161,10 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     setElectionStats((prev) => ({ ...prev, totalSeats: settings.totalSeats }));
   };
 
-  // Load data from backend or mock on initial render
-  useEffect(() => {
-    dataService.getDistricts().then((loadedDistricts) => {
-      setDistricts(loadedDistricts);
-      // Derive provinces from loaded districts and set the provinces state
-      const uniqueProvinces = Array.from(
-        new Set(loadedDistricts.map((d) => d.province))
-      ).filter((p) => p !== "All"); // Exclude 'All' from the list of provinces
-      setProvinces(uniqueProvinces);
-    });
-    dataService.getParties().then(setParties);
-    dataService.getElectionStats().then(setElectionStats);
-  }, []);
-
   // New function to set year-specific data - Modified to accept ProvinceConfig[]
   const setElectionYearData = (year: number, data: ProvinceConfig[]) => {
     setElectionYearDataState((prev) => ({ ...prev, [year]: data }));
   };
-
-  // (Removed localStorage for district nominations, use state only)
 
   // Calculate party percentages, seats, and bonus seats
   const calculatePartyStats = (party: Party, district: District): Party => {
@@ -230,9 +236,8 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
     partyData: Omit<Party, "id" | "percentage" | "seats" | "hasBonusSeat">
   ) => {
     // Create a unique ID that includes both party name and district
-    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${
-      partyData.districtId
-    }-${Date.now()}`;
+    const newPartyId = `${partyData.name.toLowerCase().replace(/\s+/g, "-")}-${partyData.districtId
+      }-${Date.now()}`;
     const district = districts.find((d) => d.id === partyData.districtId);
     if (!district) return;
 
@@ -315,11 +320,11 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       prev.map((d) =>
         d.id === districtId
           ? {
-              ...d,
-              totalVotes,
-              rejectedVotes,
-              validVotes,
-            }
+            ...d,
+            totalVotes,
+            rejectedVotes,
+            validVotes,
+          }
           : d
       )
     );
@@ -349,12 +354,12 @@ export const ElectionDataProvider: React.FC<{ children: ReactNode }> = ({
       prev.map((d) =>
         d.id === districtId
           ? {
-              ...d,
-              totalVotes: 0,
-              rejectedVotes: 0,
-              validVotes: 0,
-              bonusSeatPartyId: null,
-            }
+            ...d,
+            totalVotes: 0,
+            rejectedVotes: 0,
+            validVotes: 0,
+            bonusSeatPartyId: null,
+          }
           : d
       )
     );

@@ -14,7 +14,7 @@ export interface Party {
   id: string;
   name: string;
   votes: number;
-  logoData?: string; // base64 data URL for uploaded logo
+  color: string; // Color for the party
   districtId: string;
   percentage?: number;
   seats?: number;

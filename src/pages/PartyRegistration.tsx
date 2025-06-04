@@ -47,12 +47,12 @@ const ManageParties: React.FC = () => {
   const [formData, setFormData] = React.useState<{
     id: string | null;
     name: string;
-    logoData?: string;
+    color: string;
     districtId: string;
   }>({
     id: null,
     name: "",
-    logoData: undefined,
+    color: "#000000",
     districtId: "all-districts",
   });
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -93,8 +93,8 @@ const ManageParties: React.FC = () => {
       setFormError("Party name is required");
       return false;
     }
-    if (!formData.logoData) {
-      setFormError("Party logo is required");
+    if (!formData.color) {
+      setFormError("Party color is required");
       return false;
     }
     return true;
@@ -118,7 +118,7 @@ const ManageParties: React.FC = () => {
         updateParty({
           ...existingParty,
           name: formData.name,
-          logoData: formData.logoData,
+          color: formData.color,
         });
         setFormSuccess("Party updated successfully");
       }
@@ -126,7 +126,7 @@ const ManageParties: React.FC = () => {
       addParty({
         name: formData.name,
         votes: 0,
-        logoData: formData.logoData,
+        color: formData.color,
         districtId: formData.districtId,
       });
       setFormSuccess("Party added successfully");
@@ -134,7 +134,7 @@ const ManageParties: React.FC = () => {
     setFormData({
       id: null,
       name: "",
-      logoData: undefined,
+      color: "#000000",
       districtId: "all-districts",
     });
     setTimeout(() => {
@@ -146,7 +146,7 @@ const ManageParties: React.FC = () => {
     setFormData({
       id: party.id,
       name: party.name,
-      logoData: party.logoData,
+      color: party.color,
       districtId: party.districtId,
     });
     setFormError(null);
@@ -173,7 +173,7 @@ const ManageParties: React.FC = () => {
     setFormData({
       id: null,
       name: "",
-      logoData: undefined,
+      color: "#000000",
       districtId: "all-districts",
     });
     setFormError(null);
@@ -208,25 +208,22 @@ const ManageParties: React.FC = () => {
               />
             </div>
             <div>
-              <label htmlFor="logoData" className={commonStyles.label}>
-                Party Logo File
+              <label htmlFor="color" className={commonStyles.label}>
+                Party Color
               </label>
-              <div className="flex items-center">
+              <div className="flex items-center gap-4">
                 <input
-                  type="file"
-                  id="logoData"
-                  name="logoData"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className={commonStyles.input}
+                  type="color"
+                  id="color"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  className="h-10 w-20 cursor-pointer"
                 />
-                {formData.logoData && (
-                  <img
-                    src={formData.logoData}
-                    alt="Logo preview"
-                    className="w-10 h-10 ml-2 object-contain"
-                  />
-                )}
+                <div
+                  className="w-10 h-10 rounded-full border border-gray-300"
+                  style={{ backgroundColor: formData.color }}
+                />
               </div>
             </div>
           </div>
@@ -250,7 +247,7 @@ const ManageParties: React.FC = () => {
           <thead className={commonStyles.table.header}>
             <tr>
               <th className={commonStyles.table.headerCell}>Party Name</th>
-              <th className={commonStyles.table.headerCell}>Logo</th>
+              <th className={commonStyles.table.headerCell}>Color</th>
               <th className={commonStyles.table.headerCell}>Actions</th>
             </tr>
           </thead>
@@ -263,10 +260,9 @@ const ManageParties: React.FC = () => {
                   </div>
                 </td>
                 <td className={commonStyles.table.cell}>
-                  <img
-                    src={party.logoData}
-                    alt={`${party.name} logo`}
-                    className="w-8 h-8 object-contain"
+                  <div
+                    className="w-8 h-8 rounded-full border border-gray-300"
+                    style={{ backgroundColor: party.color }}
                   />
                 </td>
                 <td className={commonStyles.table.cell}>
@@ -353,8 +349,7 @@ const AssignPartiesToDistricts: React.FC<{
     }
     setDistrictNominations(districtId, updated);
     setFormSuccess(
-      `Nominations updated for ${
-        districts.find((d: any) => d.id === districtId)?.name
+      `Nominations updated for ${districts.find((d: any) => d.id === districtId)?.name
       }`
     );
     setTimeout(() => setFormSuccess(null), 1500);
@@ -376,11 +371,10 @@ const AssignPartiesToDistricts: React.FC<{
                   {district.name}
                 </span>
                 <span
-                  className={`text-xs px-2 py-1 rounded ${
-                    nominated.length > 0
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
+                  className={`text-xs px-2 py-1 rounded ${nominated.length > 0
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-200 text-gray-600"
+                    }`}
                 >
                   {nominated.length > 0
                     ? `${nominated.length} assigned`
@@ -404,13 +398,10 @@ const AssignPartiesToDistricts: React.FC<{
                         onChange={() => handleCheck(district.id, party.id)}
                         className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
                       />
-                      {party.logoData && (
-                        <img
-                          src={party.logoData}
-                          alt={party.name}
-                          className="h-5 w-5 rounded-full object-cover"
-                        />
-                      )}
+                      <div
+                        className="w-8 h-8 rounded-full border border-gray-300"
+                        style={{ backgroundColor: party.color }}
+                      />
                       <span className="text-sm">{party.name}</span>
                     </label>
                   ))
@@ -437,20 +428,18 @@ const AssignPartiesToDistricts: React.FC<{
             return (
               <div
                 key={district.id}
-                className={`p-4 border rounded-lg ${
-                  isComplete ? "bg-green-50 border-green-200" : "bg-gray-50"
-                }`}
+                className={`p-4 border rounded-lg ${isComplete ? "bg-green-50 border-green-200" : "bg-gray-50"
+                  }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-700">
                     {district.name}
                   </span>
                   <span
-                    className={`text-xs font-medium px-2 py-1 rounded ${
-                      isComplete
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
+                    className={`text-xs font-medium px-2 py-1 rounded ${isComplete
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-200 text-gray-600"
+                      }`}
                   >
                     {isComplete
                       ? `${nominated.length} parties nominated`
@@ -480,9 +469,8 @@ const AssignPartiesToDistricts: React.FC<{
         <button
           onClick={handleComplete}
           disabled={!isAllDistrictsAssigned}
-          className={`${commonStyles.button.primary} ${
-            !isAllDistrictsAssigned ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className={`${commonStyles.button.primary} ${!isAllDistrictsAssigned ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
         >
           Complete Assignment
         </button>
@@ -531,10 +519,9 @@ const PartyRegistration: React.FC = () => {
             <div className="flex flex-col items-center flex-1">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
-                  ${
-                    step === s.id
-                      ? "border-teal-600 bg-teal-50"
-                      : completedSteps.includes(s.id)
+                  ${step === s.id
+                    ? "border-teal-600 bg-teal-50"
+                    : completedSteps.includes(s.id)
                       ? "border-green-500 bg-green-50"
                       : "border-gray-300 bg-gray-50"
                   }
@@ -556,9 +543,8 @@ const PartyRegistration: React.FC = () => {
                   </svg>
                 ) : (
                   <svg
-                    className={`w-6 h-6 ${
-                      step === s.id ? "text-teal-600" : "text-gray-400"
-                    }`}
+                    className={`w-6 h-6 ${step === s.id ? "text-teal-600" : "text-gray-400"
+                      }`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -574,9 +560,8 @@ const PartyRegistration: React.FC = () => {
             </div>
             {idx < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 ${
-                  completedSteps.includes(s.id) ? "bg-green-500" : "bg-gray-300"
-                }`}
+                className={`flex-1 h-0.5 ${completedSteps.includes(s.id) ? "bg-green-500" : "bg-gray-300"
+                  }`}
               ></div>
             )}
           </React.Fragment>

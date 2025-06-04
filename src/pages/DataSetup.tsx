@@ -41,6 +41,9 @@ const commonStyles = {
 };
 
 const DATA_SETUP_COMPLETE_KEY = "dataSetupCompleteSession";
+const CURRENT_STEP_KEY = "currentStepSession";
+const PROVINCE_STEP_DONE_KEY = "provinceStepDoneSession";
+const DISTRICT_STEP_DONE_KEY = "districtStepDoneSession";
 
 const DataSetup: React.FC = () => {
   const { provinces, setProvinces, districts, updateSettings } =
@@ -64,55 +67,159 @@ const DataSetup: React.FC = () => {
   // Error/success
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  // Add new state for loading provinces
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [existingProvinces, setExistingProvinces] = useState<IProvince[]>([]);
+  const [existingDistricts, setExistingDistricts] = useState<Record<string, string[]>>({});
 
-  // On mount, check if setup is complete in the current session (persisted in sessionStorage)
-  // and initialize state from context or default data.
+  // Fetch provinces and districts from backend when component mounts
   useEffect(() => {
-    const isComplete = sessionStorage.getItem(DATA_SETUP_COMPLETE_KEY) === "true";
-    setIsSetupCompleteInSession(isComplete);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const provinces = await dataService.getProvince();
+        if (provinces.length > 0) {
+          setExistingProvinces(provinces);
+          setProvinceNames(provinces.map(p => p.provinceName));
+          setNumberOfProvinces(provinces.length);
 
-    if (isComplete) {
-      // If setup is complete in session, load data from context to display summary
-      if (provinces.length > 0 && districts.length > 0) {
-        setProvinceNames(provinces);
-        setNumberOfProvinces(provinces.length);
-        const counts: Record<string, number> = {};
-        const names: Record<string, string[]> = {};
-        provinces.forEach((p) => {
-          const dists = districts.filter((d) => d.province === p);
-          counts[p] = dists.length;
-          names[p] = dists.map((d) => d.name);
-        });
-        setDistrictCounts(counts);
-        setDistrictNames(names);
-        setConfirmStep(true); // Ensure summary is shown
+          // Get all districts from backend
+          const response = await fetch('http://localhost:8000/district');
+          const data = await response.json();
+
+          if (data.status === 'success' && Array.isArray(data.districts)) {
+            // Group districts by province
+            const districtGroups: Record<string, string[]> = {};
+            const counts: Record<string, number> = {};
+
+            // Initialize with empty arrays for all provinces
+            provinces.forEach(p => {
+              districtGroups[p.provinceName] = [];
+              counts[p.provinceName] = 0;
+            });
+
+            // Populate districts for each province
+            data.districts.forEach((district: any) => {
+              const provinceName = district.provinceName;
+              if (districtGroups[provinceName]) {
+                districtGroups[provinceName].push(district.districtName);
+                counts[provinceName] = (counts[provinceName] || 0) + 1;
+              }
+            });
+
+            setDistrictNames(districtGroups);
+            setDistrictCounts(counts);
+            setExistingDistricts(districtGroups);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setFormError('Failed to fetch data. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    } else if (provinces.length > 0) {
-      // If not complete in session, initialize state based on default provinces and districts from context
-      setProvinceNames(provinces);
-      setNumberOfProvinces(provinces.length);
-      if (districts.length > 0) {
-        const counts: Record<string, number> = {};
-        const names: Record<string, string[]> = {};
-        provinces.forEach((p) => {
-          const dists = districts.filter((d) => d.province === p);
-          counts[p] = dists.length;
-          names[p] = dists.map((d) => d.name);
-        });
-        setDistrictCounts(counts);
-        setDistrictNames(names);
+    };
+
+    fetchData();
+  }, []);
+
+  // On mount, check session storage and restore state
+  useEffect(() => {
+    const isCompleteInSessionStorage = sessionStorage.getItem(DATA_SETUP_COMPLETE_KEY) === "true";
+    const currentStep = sessionStorage.getItem(CURRENT_STEP_KEY);
+    const provinceStepDone = sessionStorage.getItem(PROVINCE_STEP_DONE_KEY) === "true";
+    const districtStepDone = sessionStorage.getItem(DISTRICT_STEP_DONE_KEY) === "true";
+
+    if (isCompleteInSessionStorage) {
+      setIsSetupCompleteInSession(true);
+      setConfirmStep(true);
+    }
+
+    if (currentStep) {
+      switch (currentStep) {
+        case "provinces":
+          setProvinceStepDone(false);
+          setDistrictStepDone(false);
+          setConfirmStep(false);
+          break;
+        case "districts":
+          setProvinceStepDone(true);
+          setDistrictStepDone(false);
+          setConfirmStep(false);
+          break;
+        case "confirm":
+          setProvinceStepDone(true);
+          setDistrictStepDone(true);
+          setConfirmStep(true);
+          break;
+        default:
+          break;
+      }
+    } else {
+      // If no step is stored, check individual step states
+      if (provinceStepDone) {
+        setProvinceStepDone(true);
+      }
+      if (districtStepDone) {
+        setProvinceStepDone(true);
+        setDistrictStepDone(true);
       }
     }
-  }, [provinces, districts]); // Depend on provinces and districts from context
+  }, []);
+
+  // Update session storage when steps change
+  useEffect(() => {
+    if (confirmStep) {
+      sessionStorage.setItem(CURRENT_STEP_KEY, "confirm");
+      sessionStorage.setItem(PROVINCE_STEP_DONE_KEY, "true");
+      sessionStorage.setItem(DISTRICT_STEP_DONE_KEY, "true");
+    } else if (districtStepDone) {
+      sessionStorage.setItem(CURRENT_STEP_KEY, "districts");
+      sessionStorage.setItem(PROVINCE_STEP_DONE_KEY, "true");
+    } else if (provinceStepDone) {
+      sessionStorage.setItem(CURRENT_STEP_KEY, "provinces");
+    }
+  }, [provinceStepDone, districtStepDone, confirmStep]);
+
+  // Add function to fetch provinces
+  const fetchProvinces = async () => {
+    try {
+      setLoadingProvinces(true);
+      const provinces = await dataService.getProvince();
+      if (provinces.length > 0) {
+        setProvinceNames(provinces.map(p => p.provinceName));
+        setNumberOfProvinces(provinces.length);
+        // Initialize district counts from backend data
+        const counts: Record<string, number> = {};
+        provinces.forEach(p => {
+          counts[p.provinceName] = p.noOfDistricts;
+        });
+        setDistrictCounts(counts);
+      }
+    } catch (error) {
+      console.error('Error fetching provinces:', error);
+      setFormError('Failed to fetch provinces. Please try again.');
+    } finally {
+      setLoadingProvinces(false);
+    }
+  };
 
   // Step 1: Province setup
   const handleProvinceCountChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = parseInt(e.target.value.replace(/[^\d]/g, ""));
-    setNumberOfProvinces(isNaN(value) ? 0 : value);
-    setProvinceNames(Array(isNaN(value) ? 0 : value).fill(""));
-    setDistrictCounts({});
+    const newCount = isNaN(value) ? 0 : value;
+
+    // Keep existing provinces and add empty slots for new ones
+    const newProvinceNames = [...provinceNames];
+    while (newProvinceNames.length < newCount) {
+      newProvinceNames.push("");
+    }
+
+    setNumberOfProvinces(newCount);
+    setProvinceNames(newProvinceNames);
     setFormError(null);
     setFormSuccess(null);
   };
@@ -140,53 +247,85 @@ const DataSetup: React.FC = () => {
     setFormError(null);
   };
 
-  const handleProvinceNext = () => {
-    if (provinceNames.some((n) => !n.trim())) {
-      setFormError("All province names must be filled");
+  const handleProvinceNext = async () => {
+    // Validate only filled province names
+    const filledProvinces = provinceNames.filter(n => n.trim());
+    if (filledProvinces.length === 0) {
+      setFormError("At least one province must be filled");
       return;
     }
-    const unique = new Set(provinceNames.map((n) => n.trim().toLowerCase()));
-    if (unique.size !== provinceNames.length) {
+
+    // Check for duplicates among filled provinces
+    const unique = new Set(filledProvinces.map((n) => n.trim().toLowerCase()));
+    if (unique.size !== filledProvinces.length) {
       setFormError("Province names must be unique");
       return;
     }
 
-    const payload: IProvince[] = provinceNames.map((province, index) => ({
-      provinceName: province,
-      noOfDistricts: districtCounts[province] || 0,
-    }));
-    // Check if all provinces have district counts
-    for (const province of provinceNames) {
+    // Check if all filled provinces have district counts
+    for (const province of filledProvinces) {
       if (!districtCounts[province] || districtCounts[province] < 1) {
         setFormError(`Please specify number of districts for ${province}`);
         return;
       }
     }
 
+    try {
+      // Get existing provinces to check if we need to post new ones
+      const existingProvinces = await dataService.getProvince();
+      const existingProvinceNames = new Set(existingProvinces.map(p => p.provinceName.toLowerCase()));
 
-    dataService.addProvince(payload[0]).then((res) => {
+      // Filter out new provinces (ones that don't exist in the database)
+      const newProvinces = filledProvinces.filter(province =>
+        !existingProvinceNames.has(province.toLowerCase())
+      );
 
+      if (newProvinces.length > 0) {
+        // Only post new provinces
+        const payload = newProvinces.map((province) => ({
+          provinceName: province,
+          noOfDistricts: districtCounts[province] || 0,
+        }));
 
-    }, (err) => {
-      console.log(err);
-    })
+        // Send each new province to the backend
+        for (const province of payload) {
+          await dataService.addProvince(province);
+        }
+        setFormSuccess("New provinces added successfully!");
+      } else {
+        setFormSuccess("Proceeding to next step...");
+      }
 
-    setProvinces([...provinceNames]);
-    setProvinceStepDone(true);
-    setFormError(null);
-    setFormSuccess(null);
+      setProvinces([...filledProvinces]);
+      setProvinceStepDone(true);
+      setFormError(null);
+
+    } catch (error) {
+      console.error('Error handling provinces:', error);
+      setFormError("Failed to process provinces. Please try again.");
+    }
   };
 
   // Step 2: District setup
   const handleDistrictCountChange = (province: string, value: string) => {
     const v = parseInt(value.replace(/[^\d]/g, ""));
-    setDistrictCounts((prev) => ({ ...prev, [province]: isNaN(v) ? 0 : v }));
+    const newCount = isNaN(v) ? 0 : v;
+
+    // Keep existing districts and add empty slots for new ones
+    const existingDistricts = districtNames[province] || [];
+    const newDistricts = [...existingDistricts];
+    while (newDistricts.length < newCount) {
+      newDistricts.push("");
+    }
+
+    setDistrictCounts((prev) => ({ ...prev, [province]: newCount }));
     setDistrictNames((prev) => ({
       ...prev,
-      [province]: Array(isNaN(v) ? 0 : v).fill(""),
+      [province]: newDistricts
     }));
     setFormError(null);
   };
+
   const handleDistrictNameChange = (
     province: string,
     idx: number,
@@ -199,28 +338,28 @@ const DataSetup: React.FC = () => {
     });
     setFormError(null);
   };
-  const handleDistrictNext = () => {
-    // Check if each province has at least one district
-    for (const p of provinceNames) {
-      if (!districtCounts[p] || districtCounts[p] < 1) {
-        setFormError(`Each province must have at least one district. Please add districts for ${p}`);
-        return;
-      }
+
+  const handleDistrictNext = async () => {
+    // Get all filled district names
+    const filledDistricts: { province: string; name: string }[] = [];
+    for (const province of provinceNames) {
+      const districts = districtNames[province] || [];
+      districts.forEach((name, idx) => {
+        if (name.trim()) {
+          filledDistricts.push({ province, name: name.trim() });
+        }
+      });
     }
 
-    // Validate all names
-    for (const p of provinceNames) {
-      if ((districtNames[p] || []).some((n) => !n.trim())) {
-        setFormError(`All district names for ${p} must be filled`);
-        return;
-      }
+    if (filledDistricts.length === 0) {
+      setFormError("At least one district must be filled");
+      return;
     }
 
     // Check if any district name matches a province name
-    const allDistrictNames = Object.values(districtNames).flat();
-    for (const districtName of allDistrictNames) {
+    for (const { name } of filledDistricts) {
       if (provinceNames.some(province =>
-        province.trim().toLowerCase() === districtName.trim().toLowerCase()
+        province.trim().toLowerCase() === name.toLowerCase()
       )) {
         setFormError("District names cannot be the same as province names");
         return;
@@ -228,21 +367,72 @@ const DataSetup: React.FC = () => {
     }
 
     // Check for duplicates across all districts
-    const allNames = Object.values(districtNames).flat();
+    const allNames = filledDistricts.map(d => d.name.toLowerCase());
     const hasDup = allNames.some(
-      (n, i) =>
-        allNames.findIndex(
-          (x) => x.trim().toLowerCase() === n.trim().toLowerCase()
-        ) !== i
+      (n, i) => allNames.findIndex(x => x === n) !== i
     );
     if (hasDup) {
       setFormError("District names must be unique across all provinces");
       return;
     }
 
-    setDistrictStepDone(true);
-    setFormError(null);
-    setFormSuccess(null);
+    try {
+      // Get existing districts from backend
+      const response = await fetch('http://localhost:8000/district');
+      const data = await response.json();
+
+      if (data.status === 'success' && Array.isArray(data.districts)) {
+        // Create a set of existing district names for each province
+        const existingDistrictsByProvince: Record<string, Set<string>> = {};
+        data.districts.forEach((district: any) => {
+          const provinceName = district.provinceName;
+          if (!existingDistrictsByProvince[provinceName]) {
+            existingDistrictsByProvince[provinceName] = new Set();
+          }
+          existingDistrictsByProvince[provinceName].add(district.districtName.toLowerCase());
+        });
+
+        // Filter out new districts (ones that don't exist in the database)
+        const newDistricts = filledDistricts.filter(({ province, name }) => {
+          const existingDistricts = existingDistrictsByProvince[province] || new Set();
+          return !existingDistricts.has(name.toLowerCase());
+        });
+
+        if (newDistricts.length > 0) {
+          // Get province IDs for mapping
+          const provinces = await dataService.getProvince();
+          const provinceMap = new Map(provinces.map(p => [p.provinceName, p.id]));
+
+          // Create districts array for bulk creation
+          const districtsToAdd = newDistricts.map(({ province, name }) => ({
+            districtName: name,
+            idProvince: Number(provinceMap.get(province))
+          }));
+
+          // Send new districts in bulk
+          const response = await dataService.addDistrict(districtsToAdd);
+          if (response && (response.status === 'success' || Array.isArray(response.data))) {
+            setFormSuccess("New districts added successfully!");
+          } else {
+            throw new Error(response?.message || "Failed to add districts");
+          }
+        } else {
+          setFormSuccess("Proceeding to next step...");
+        }
+
+        setDistrictStepDone(true);
+        setFormError(null);
+      }
+    } catch (error: any) {
+      console.error('Error handling districts:', error);
+      if (error.response) {
+        setFormError(error.response.data?.message || "Failed to add districts. Please try again.");
+      } else if (error.request) {
+        setFormError("No response from server. Please check your connection.");
+      } else {
+        setFormError(error?.message || "Failed to add districts. Please try again.");
+      }
+    }
   };
 
   // Step 3: Confirm and save
@@ -281,10 +471,13 @@ const DataSetup: React.FC = () => {
     setConfirmStep(true);
     setFormSuccess("Data setup complete!");
     setFormError(null);
-    // Mark setup as complete in sessionStorage for the current session
+
+    // Mark setup as complete in sessionStorage
     sessionStorage.setItem(DATA_SETUP_COMPLETE_KEY, "true");
+    sessionStorage.setItem(CURRENT_STEP_KEY, "confirm");
+    sessionStorage.setItem(PROVINCE_STEP_DONE_KEY, "true");
+    sessionStorage.setItem(DISTRICT_STEP_DONE_KEY, "true");
     setIsSetupCompleteInSession(true);
-    // The districts and provinces are already saved to context by updateSettings
   };
 
   // Step navigation
@@ -432,68 +625,77 @@ const DataSetup: React.FC = () => {
           {!provinceStepDone && (
             <>
               <h2 className={`${commonStyles.title} mb-6`}>Provinces Setup</h2>
-              <div className={commonStyles.formGroup}>
-                <label className={commonStyles.label}>
-                  Number of Provinces
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  min="1"
-                  value={numberOfProvinces}
-                  onChange={handleProvinceCountChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-lg ${commonStyles.input}`}
-                  required
-                  autoComplete="off"
-                />
-              </div>
-              {numberOfProvinces > 0 && (
-                <div className="space-y-4">
-                  {provinceNames.map((name, idx) => (
-                    <div key={idx} className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <label className={commonStyles.label}>
-                          Province {idx + 1}
-                        </label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) =>
-                            handleProvinceNameChange(idx, e.target.value)
-                          }
-                          className={commonStyles.input}
-                          required
-                          placeholder={`Enter name for Province ${idx + 1}`}
-                        />
-                      </div>
-                      <div className="w-48">
-                        <label className={commonStyles.label}>
-                          Number of Districts
-                        </label>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={districtCounts[name] || ""}
-                          onChange={(e) =>
-                            handleProvinceDistrictCountChange(idx, e.target.value)
-                          }
-                          className={commonStyles.input}
-                          required
-                          placeholder="Enter number"
-                        />
-                      </div>
-                    </div>
-                  ))}
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading provinces...</p>
                 </div>
+              ) : (
+                <>
+                  <div className={commonStyles.formGroup}>
+                    <label className={commonStyles.label}>
+                      Number of Provinces
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      min="1"
+                      value={numberOfProvinces}
+                      onChange={handleProvinceCountChange}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-lg ${commonStyles.input}`}
+                      required
+                      autoComplete="off"
+                    />
+                  </div>
+                  {numberOfProvinces > 0 && (
+                    <div className="space-y-4">
+                      {provinceNames.map((name, idx) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <label className={commonStyles.label}>
+                              Province {idx + 1}
+                            </label>
+                            <input
+                              type="text"
+                              value={name}
+                              onChange={(e) =>
+                                handleProvinceNameChange(idx, e.target.value)
+                              }
+                              className={commonStyles.input}
+                              required
+                              placeholder={`Enter name for Province ${idx + 1}`}
+                            />
+                          </div>
+                          <div className="w-48">
+                            <label className={commonStyles.label}>
+                              Number of Districts
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={districtCounts[name] || ""}
+                              onChange={(e) =>
+                                handleProvinceDistrictCountChange(idx, e.target.value)
+                              }
+                              className={commonStyles.input}
+                              required
+                              placeholder="Enter number"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-8 flex justify-end">
+                    <button
+                      className={commonStyles.button.primary}
+                      onClick={handleProvinceNext}
+                    >
+                      {existingProvinces.length > 0 ? "Next" : "Save and Continue"}
+                    </button>
+                  </div>
+                </>
               )}
-              <div className="mt-8 flex justify-end">
-                <button
-                  className={commonStyles.button.primary}
-                  onClick={handleProvinceNext}
-                >
-                  Save and Continue
-                </button>
-              </div>
             </>
           )}
 
@@ -501,46 +703,65 @@ const DataSetup: React.FC = () => {
           {provinceStepDone && !districtStepDone && (
             <>
               <h2 className={`${commonStyles.title} mb-6`}>Districts Setup</h2>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Districts</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {provinceNames.map((province) => (
-                      <tr key={province}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {province}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="grid grid-cols-1 gap-2">
-                            {Array.from({ length: districtCounts[province] || 0 }).map((_, idx) => (
-                              <input
-                                key={idx}
-                                type="text"
-                                value={districtNames[province]?.[idx] || ""}
-                                onChange={(e) =>
-                                  handleDistrictNameChange(
-                                    province,
-                                    idx,
-                                    e.target.value
-                                  )
-                                }
-                                className={commonStyles.input}
-                                required
-                                placeholder={`District ${idx + 1} name`}
-                              />
-                            ))}
-                          </div>
-                        </td>
+              {loadingProvinces ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading districts...</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Province</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number of Districts</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Districts</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {provinceNames.map((province) => (
+                        <tr key={province}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {province}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={districtCounts[province] || ""}
+                              onChange={(e) => handleDistrictCountChange(province, e.target.value)}
+                              className={commonStyles.input}
+                              required
+                              placeholder="Enter number"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="grid grid-cols-1 gap-2">
+                              {Array.from({ length: districtCounts[province] || 0 }).map((_, idx) => (
+                                <input
+                                  key={idx}
+                                  type="text"
+                                  value={districtNames[province]?.[idx] || ""}
+                                  onChange={(e) =>
+                                    handleDistrictNameChange(
+                                      province,
+                                      idx,
+                                      e.target.value
+                                    )
+                                  }
+                                  className={commonStyles.input}
+                                  required
+                                  placeholder={`District ${idx + 1} name`}
+                                />
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="mt-8 flex justify-between">
                 <button
                   className={commonStyles.button.secondary}
@@ -552,7 +773,9 @@ const DataSetup: React.FC = () => {
                   className={commonStyles.button.primary}
                   onClick={handleDistrictNext}
                 >
-                  Next
+                  {Object.values(existingDistricts).some(districts => districts.length > 0)
+                    ? "Next"
+                    : "Add Districts & Continue"}
                 </button>
               </div>
             </>

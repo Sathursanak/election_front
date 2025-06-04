@@ -5,7 +5,28 @@ import SriLankaMap from "../components/SriLankaMap";
 // import HomeHeroSlider from "../components/HomeHeroSlider";
 
 const Home: React.FC = () => {
-  const { electionStats, year, parties, districts, calculatedResults } = useElectionData();
+  const {
+    districts,
+    parties,
+    electionStats,
+    loading,
+    error,
+    calculatedResults,
+    year
+  } = useElectionData();
+
+  const filteredDistricts = useMemo(() => {
+    if (!Array.isArray(districts)) return [];
+    return districts.filter(district => district.province !== "All");
+  }, [districts]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   // Calculate leading party and voter turnout from actual data
   const { leadingParty, voterTurnout } = useMemo(() => {
@@ -14,30 +35,32 @@ const Home: React.FC = () => {
     let partyVotes: Record<string, { name: string; votes: number; seats: number }> = {};
 
     // Sum up votes and seats for each party across all districts
-    Object.values(calculatedResults).forEach(districtParties => {
-      districtParties.forEach(party => {
-        const key = party.name.trim().toLowerCase();
-        if (!partyVotes[key]) {
-          partyVotes[key] = {
-            name: party.name,
-            votes: 0,
-            seats: 0
-          };
-        }
-        partyVotes[key].votes += party.votes;
-        partyVotes[key].seats += (party as any).totalSeats || 0;
+    if (calculatedResults) {
+      Object.values(calculatedResults).forEach(districtParties => {
+        districtParties.forEach(party => {
+          const key = party.name.trim().toLowerCase();
+          if (!partyVotes[key]) {
+            partyVotes[key] = {
+              name: party.name,
+              votes: 0,
+              seats: 0
+            };
+          }
+          partyVotes[key].votes += party.votes;
+          partyVotes[key].seats += (party as any).totalSeats || 0;
+        });
       });
-    });
+    }
 
     // Find the party with highest votes
-    const leadingPartyData = Object.values(partyVotes).reduce((prev, curr) => 
+    const leadingPartyData = Object.values(partyVotes).reduce((prev, curr) =>
       curr.votes > prev.votes ? curr : prev
-    , { name: '', votes: 0, seats: 0 });
+      , { name: '', votes: 0, seats: 0 });
 
     // Calculate total votes from all districts
     totalVotes = districts
       .filter(d => d.id !== "all-districts")
-      .reduce((sum, d) => sum + d.totalVotes, 0);
+      .reduce((sum, d) => sum + (d.totalVotes || 0), 0);
 
     // Calculate voter turnout (assuming registered voters is 1.5x total votes for this example)
     const registeredVoters = totalVotes * 1.5;
@@ -52,9 +75,17 @@ const Home: React.FC = () => {
     };
   }, [calculatedResults, districts]);
 
+  // Default values for election stats
+  const stats = {
+    totalVotes: electionStats?.totalVotes || 0,
+    totalSeats: electionStats?.totalSeats || 0,
+    leadingParty: electionStats?.leadingParty || { name: 'N/A', seats: 0 },
+    voterTurnout: electionStats?.voterTurnout || 0
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
-      
+
 
       {/* Hero Section with Static Image */}
       <section className="relative w-full h-64 md:h-96 overflow-hidden rounded-b-2xl shadow-lg ">
@@ -98,10 +129,10 @@ const Home: React.FC = () => {
                 Total Votes
               </h3>
               <p className="text-3xl font-bold text-gray-800">
-                {electionStats.totalVotes.toLocaleString()}
+                {stats.totalVotes.toLocaleString()}
               </p>
               <p className="text-gray-500 mt-2">
-                Cast across 22 electoral districts
+                Cast across {filteredDistricts.length} electoral districts
               </p>
             </div>
 
@@ -111,7 +142,7 @@ const Home: React.FC = () => {
                 Total Seats
               </h3>
               <p className="text-3xl font-bold text-gray-800">
-                {electionStats.totalSeats}
+                {stats.totalSeats}
               </p>
               <p className="text-gray-500 mt-2">Parliament seats allocated</p>
             </div>
@@ -145,9 +176,9 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-     
 
-      
+
+
     </div>
   );
 };
