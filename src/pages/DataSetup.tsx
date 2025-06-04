@@ -582,7 +582,30 @@ const DataSetup: React.FC = () => {
               </tbody>
             </table>
             <div className="flex justify-end mt-8">
-              {/* Edit button removed */}
+              <button
+                className={commonStyles.button.primary}
+                onClick={() => {
+                  // Reset all session storage flags
+                  sessionStorage.removeItem(DATA_SETUP_COMPLETE_KEY);
+                  sessionStorage.removeItem(CURRENT_STEP_KEY);
+                  sessionStorage.removeItem(PROVINCE_STEP_DONE_KEY);
+                  sessionStorage.removeItem(DISTRICT_STEP_DONE_KEY);
+
+                  // Reset component state
+                  setIsSetupCompleteInSession(false);
+                  setConfirmStep(false);
+                  setProvinceStepDone(false);
+                  setDistrictStepDone(false);
+
+                  // Keep the existing data in the form
+                  setNumberOfProvinces(provinceNames.length);
+                  setProvinceNames([...provinceNames]);
+                  setDistrictCounts({ ...districtCounts });
+                  setDistrictNames({ ...districtNames });
+                }}
+              >
+                Edit Setup
+              </button>
             </div>
           </div>
         </div>

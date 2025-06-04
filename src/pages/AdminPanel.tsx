@@ -8,6 +8,7 @@ import { ElectionHistory, electionHistory } from "../data/electionHistory";
 import axios from "axios";
 import ConfigureElectionProvincesDistricts from "../components/ConfigureElectionProvincesDistricts";
 import ConfirmElectionProvincesDistricts from "../components/ConfirmElectionProvincesDistricts";
+import { dataService } from '../utils/dataService';
 
 // Define the interfaces used within AdminPanel.tsx (including SetSeatCounts)
 interface ProvinceConfig {
@@ -55,7 +56,7 @@ const AdminPanel: React.FC = () => {
   const steps = [
     {
       id: 1,
-      title: "Select Election Year",
+      title: "Create Election",
       description: "Choose the election year",
       component: (
         <SelectElectionYear selectedYear={year} setSelectedYear={setYear} />
@@ -103,10 +104,10 @@ const AdminPanel: React.FC = () => {
               <div className="flex flex-col items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${currentStep === step.id
-                      ? "border-teal-600 bg-teal-50"
-                      : step.isCompleted
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-300 bg-gray-50"
+                    ? "border-teal-600 bg-teal-50"
+                    : step.isCompleted
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-300 bg-gray-50"
                     }`}
                 >
                   {step.isCompleted ? (
@@ -137,8 +138,8 @@ const AdminPanel: React.FC = () => {
             onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
             disabled={currentStep === 1}
             className={`px-4 py-2 rounded-md ${currentStep === 1
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-teal-600 text-white hover:bg-teal-700"
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-teal-600 text-white hover:bg-teal-700"
               }`}
           >
             Previous Step
@@ -159,8 +160,8 @@ const AdminPanel: React.FC = () => {
             }
             disabled={currentStep === steps.length}
             className={`px-4 py-2 rounded-md ${currentStep === steps.length
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-teal-600 text-white hover:bg-teal-700"
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-teal-600 text-white hover:bg-teal-700"
               }`}
           >
             Next Step
@@ -186,13 +187,12 @@ const SelectElectionYear: React.FC<{
 }> = ({ selectedYear, setSelectedYear }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedHistory, setSelectedHistory] =
-    useState<ElectionHistory | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<ElectionHistory | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Local state for manual-only input
-  const [yearInput, setYearInput] = useState(
-    selectedYear ? String(selectedYear) : ""
-  );
+  const [yearInput, setYearInput] = useState(selectedYear ? String(selectedYear) : "");
 
   useEffect(() => {
     setYearInput(selectedYear ? String(selectedYear) : "");
@@ -200,19 +200,44 @@ const SelectElectionYear: React.FC<{
 
   const handleYearInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setYearInput(e.target.value.replace(/[^\d]/g, ""));
+    setError(null);
+    setSuccessMessage(null);
   };
 
-  const commitYearInput = () => {
+  const handleSetYear = async () => {
     const value = parseInt(yearInput);
     if (!isNaN(value)) {
-      setSelectedYear(value);
-      setError(null);
-      setSelectedHistory(null);
-      const history = electionHistory.find((h) => h.year === value);
-      if (history) {
-        setSelectedHistory(history);
-      } else if (value < 2025) {
+      if (value < 2025) {
         setError("No parliamentary election was held in this year.");
+        return;
+      }
+
+      setIsSaving(true);
+      try {
+        const electionData = {
+          electionYear: value,
+          noOfProvinces: 0, // Will be updated in later steps
+          totalSeats: 0 // Will be updated in later steps
+        };
+
+        const response = await dataService.createElection(electionData);
+        if (response.status === 'success') {
+          setSelectedYear(value);
+          setError(null);
+          setSuccessMessage(`Election for year ${value} created successfully!`);
+          setSelectedHistory(null);
+          const history = electionHistory.find((h) => h.year === value);
+          if (history) {
+            setSelectedHistory(history);
+          }
+        } else {
+          setError("Failed to save election year. Please try again.");
+        }
+      } catch (error: any) {
+        console.error('Error saving election year:', error);
+        setError(error.response?.data?.message || "Failed to save election year. Please try again.");
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -220,24 +245,31 @@ const SelectElectionYear: React.FC<{
   return (
     <div className={commonStyles.container}>
       <div className={commonStyles.card}>
-        <h2 className={commonStyles.title}>Select Election Year</h2>
+        <h2 className={commonStyles.title}>Create Election</h2>
 
         <div className="mb-6">
           <label className={commonStyles.label}>Enter the election year</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={yearInput}
-            onChange={handleYearInputChange}
-            onBlur={commitYearInput}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitYearInput();
-            }}
-            className={commonStyles.input}
-            placeholder="Enter year"
-            autoComplete="off"
-          />
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={yearInput}
+              onChange={handleYearInputChange}
+              className={commonStyles.input}
+              placeholder="Enter year"
+              autoComplete="off"
+              disabled={isSaving}
+            />
+            <button
+              onClick={handleSetYear}
+              disabled={isSaving}
+              className={`${commonStyles.button.primary} ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isSaving ? 'Setting...' : 'Set Year'}
+            </button>
+          </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {successMessage && <p className="mt-2 text-sm text-green-600">{successMessage}</p>}
         </div>
 
         {selectedHistory && (
@@ -299,9 +331,8 @@ const SelectElectionYear: React.FC<{
                     key={`${election.year}-${election.parliamentNumber}`}
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => {
-                      setSelectedYear(election.year);
-                      setSelectedHistory(election);
-                      setError(null);
+                      setYearInput(String(election.year));
+                      handleSetYear();
                     }}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -1039,8 +1070,8 @@ const AssignPartiesToDistricts: React.FC = () => {
                 </span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${nominated.length > 0
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-200 text-gray-600"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-200 text-gray-600"
                     }`}
                 >
                   {nominated.length > 0
@@ -1111,8 +1142,8 @@ const AssignPartiesToDistricts: React.FC = () => {
                   </span>
                   <span
                     className={`text-xs font-medium px-2 py-1 rounded ${isComplete
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-200 text-gray-600"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-200 text-gray-600"
                       }`}
                   >
                     {isComplete

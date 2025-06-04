@@ -132,5 +132,16 @@ export const dataService = {
       return [];
     }
   },
+
+  async createElection(electionData: { electionYear: number; noOfProvinces: number; totalSeats: number }): Promise<any> {
+    try {
+      const response = await axios.post(`${API_BASE}/election/create`, [electionData]);
+      return response.data[0]; // Return the first election data from the response array
+    } catch (error) {
+      console.error('Error creating election:', error);
+      throw error;
+    }
+  },
+
   // Add more methods for votes, nominations, etc. as needed
 };
