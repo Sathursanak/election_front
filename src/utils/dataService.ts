@@ -11,7 +11,10 @@ export const dataService = {
     if (USE_MOCK) return [];
     try {
       const res = await axios.get(`${API_BASE}/district`);
-      return Array.isArray(res.data) ? res.data : [];
+      if (res.data && Array.isArray(res.data.districts)) {
+        return res.data.districts;
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching districts:', error);
       return [];

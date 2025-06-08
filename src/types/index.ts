@@ -1,13 +1,16 @@
 export interface District {
-  id: string;
-  name: string;
-  province: string;
-  totalVotes: number;
-  rejectedVotes: number;
-  validVotes: number;
-  seats: number;
-  bonusSeats: number;
-  bonusSeatPartyId: string | null;
+  id: number;
+  districtName: string;
+  idProvince: number;
+  provinceName: string;
+  name?: string;
+  province?: string;
+  totalVotes?: number;
+  rejectedVotes?: number;
+  validVotes?: number;
+  seats?: number;
+  bonusSeats?: number;
+  bonusSeatPartyId?: string | null;
 }
 
 export interface Party {
@@ -40,7 +43,7 @@ export interface ElectionStats {
 }
 
 export interface IProvince {
-  id?: string;
+  id: string;
   provinceName: string;
   noOfDistricts: number;
 }

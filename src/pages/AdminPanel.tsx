@@ -2,10 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
 import { Party, District } from "../types";
 import { Edit2, Trash2, CheckCircle2, Circle } from "lucide-react";
-// import { useNavigate } from "react-router-dom";
-import { provinces } from "../data/mockData";
 import { ElectionHistory, electionHistory } from "../data/electionHistory";
-import axios from "axios";
 import ConfigureElectionProvincesDistricts from "../components/ConfigureElectionProvincesDistricts";
 import ConfirmElectionProvincesDistricts from "../components/ConfirmElectionProvincesDistricts";
 import { dataService } from '../utils/dataService';
@@ -23,20 +20,20 @@ interface DistrictConfig extends District {
 
 const AdminPanel: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(() => {
-    // Check if this is a fresh page load (reload)
     const isReload = !sessionStorage.getItem('adminPanelVisited');
     if (isReload) {
-      // Mark as visited and reset to step 1
       sessionStorage.setItem('adminPanelVisited', 'true');
       localStorage.setItem("adminPanelStep", "1");
       return 1;
     }
-    // For navigation, use the saved step
     const savedStep = localStorage.getItem("adminPanelStep");
     return savedStep ? parseInt(savedStep) : 1;
   });
   const { year, setYear, districts, updateSettings, provinces, setProvinces } =
     useElectionData();
+
+  // Add state to track if election was created
+  const [electionCreated, setElectionCreated] = useState(false);
 
   // Save current step to localStorage whenever it changes
   useEffect(() => {
@@ -45,12 +42,10 @@ const AdminPanel: React.FC = () => {
 
   // Check if each step is completed
   const isStepCompleted = {
-    step1: year >= 2025, // Only completed if year is 2025 or later
-    step2: true, // Configure Provinces & Districts for Year (Assuming completion is handled within component)
-    step3: true, // Confirmation step (Always shown as completed if reached)
-    step4: true, // Set Seat Counts
-    step5: true, // Originally step 5, now removed
-    step6: true, // Originally step 6, now removed
+    step1: year >= 2025 && provinces.length > 0, // Only completed if year is 2025 or later, provinces are configured, and election is created
+    step2: districts.length > 0, // Only completed if districts are configured
+    step3: districts.length > 0, // Only completed if districts are configured
+    step4: districts.length > 0, // Only completed if districts have seats configured
   };
 
   const steps = [
@@ -59,7 +54,11 @@ const AdminPanel: React.FC = () => {
       title: "Create Election",
       description: "Choose the election year",
       component: (
-        <SelectElectionYear selectedYear={year} setSelectedYear={setYear} />
+        <SelectElectionYear
+          selectedYear={year}
+          setSelectedYear={setYear}
+          onElectionCreated={() => setElectionCreated(true)}
+        />
       ),
       isCompleted: isStepCompleted.step1,
     },
@@ -89,6 +88,12 @@ const AdminPanel: React.FC = () => {
 
   // Prevent out-of-bounds currentStep
   const safeCurrentStep = Math.max(1, Math.min(currentStep, steps.length));
+
+  // Function to check if next step is available
+  const canProceedToNextStep = () => {
+    if (currentStep >= steps.length) return false;
+    return isStepCompleted[`step${currentStep}` as keyof typeof isStepCompleted];
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 relative">
@@ -158,8 +163,8 @@ const AdminPanel: React.FC = () => {
             onClick={() =>
               setCurrentStep((prev) => Math.min(steps.length, prev + 1))
             }
-            disabled={currentStep === steps.length}
-            className={`px-4 py-2 rounded-md ${currentStep === steps.length
+            disabled={!canProceedToNextStep()}
+            className={`px-4 py-2 rounded-md ${!canProceedToNextStep()
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
               : "bg-teal-600 text-white hover:bg-teal-700"
               }`}
@@ -184,15 +189,27 @@ const AdminPanel: React.FC = () => {
 const SelectElectionYear: React.FC<{
   selectedYear: number;
   setSelectedYear: (year: number) => void;
-}> = ({ selectedYear, setSelectedYear }) => {
+  onElectionCreated: () => void;
+}> = ({ selectedYear, setSelectedYear, onElectionCreated }) => {
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<ElectionHistory | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showProvinceInput, setShowProvinceInput] = useState(false);
+  const [numberOfProvinces, setNumberOfProvinces] = useState<string>("");
+  const { provinces } = useElectionData(); // Get provinces from context
 
   // Local state for manual-only input
   const [yearInput, setYearInput] = useState(selectedYear ? String(selectedYear) : "");
+
+  // Effect to initialize province count when returning to this step
+  useEffect(() => {
+    if (selectedYear >= 2025 && provinces.length > 0) {
+      setShowProvinceInput(true);
+      setNumberOfProvinces(String(provinces.length));
+    }
+  }, [selectedYear, provinces]);
 
   useEffect(() => {
     setYearInput(selectedYear ? String(selectedYear) : "");
@@ -202,45 +219,90 @@ const SelectElectionYear: React.FC<{
     setYearInput(e.target.value.replace(/[^\d]/g, ""));
     setError(null);
     setSuccessMessage(null);
+    setShowProvinceInput(false);
   };
 
   const handleSetYear = async () => {
     const value = parseInt(yearInput);
     if (!isNaN(value)) {
+      // First check if there's historical data for this year
+      const history = electionHistory.find((h) => h.year === value);
+
       if (value < 2025) {
-        setError("No parliamentary election was held in this year.");
+        if (history) {
+          setSelectedHistory(history);
+          setError(null);
+          setShowProvinceInput(false);
+        } else {
+          setError("No parliamentary election was held in this year.");
+        }
         return;
       }
 
-      setIsSaving(true);
-      try {
-        const electionData = {
-          electionYear: value,
-          noOfProvinces: 0, // Will be updated in later steps
-          totalSeats: 0 // Will be updated in later steps
-        };
+      // For years 2025 and later
+      setSelectedYear(value);
+      setShowProvinceInput(true);
+      setError(null);
+      setSuccessMessage(null);
+      setSelectedHistory(null);
 
-        const response = await dataService.createElection(electionData);
-        if (response.status === 'success') {
-          setSelectedYear(value);
-          setError(null);
-          setSuccessMessage(`Election for year ${value} created successfully!`);
-          setSelectedHistory(null);
-          const history = electionHistory.find((h) => h.year === value);
-          if (history) {
-            setSelectedHistory(history);
-          }
-        } else {
-          setError("Failed to save election year. Please try again.");
-        }
-      } catch (error: any) {
-        console.error('Error saving election year:', error);
-        setError(error.response?.data?.message || "Failed to save election year. Please try again.");
-      } finally {
-        setIsSaving(false);
+      // If we already have provinces configured, show their count
+      if (provinces.length > 0) {
+        setNumberOfProvinces(String(provinces.length));
       }
     }
   };
+
+  const handleCreateElection = async () => {
+    if (!numberOfProvinces || parseInt(numberOfProvinces) <= 0) {
+      setError("Please enter a valid number of provinces");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const electionData = {
+        electionYear: parseInt(yearInput),
+        noOfProvinces: parseInt(numberOfProvinces),
+        totalSeats: 0 // Will be updated in later steps
+      };
+
+      const response = await fetch('http://localhost:8000/election/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([electionData]) // API expects an array
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Store the number of provinces in localStorage to persist it
+        localStorage.setItem('numberOfProvinces', numberOfProvinces);
+        setSuccessMessage(`Election for year ${yearInput} created successfully!`);
+        setTimeout(() => setSuccessMessage(null), 1000);
+        onElectionCreated();
+      } else {
+        setError(result.message || "Failed to create election");
+        setTimeout(() => setError(null), 1000);
+      }
+    } catch (error: any) {
+      console.error('Error creating election:', error);
+      setError(error.message || "Failed to create election");
+      setTimeout(() => setError(null), 1000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Add useEffect to load persisted numberOfProvinces
+  useEffect(() => {
+    const savedNumberOfProvinces = localStorage.getItem('numberOfProvinces');
+    if (savedNumberOfProvinces) {
+      setNumberOfProvinces(savedNumberOfProvinces);
+    }
+  }, []);
 
   return (
     <div className={commonStyles.container}>
@@ -265,7 +327,7 @@ const SelectElectionYear: React.FC<{
               disabled={isSaving}
               className={`${commonStyles.button.primary} ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isSaving ? 'Setting...' : 'Set Year'}
+              Continue
             </button>
           </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
@@ -290,7 +352,30 @@ const SelectElectionYear: React.FC<{
           </div>
         )}
 
-        <div className="flex justify-between items-center">
+        {showProvinceInput && (
+          <div className="mb-6">
+            <label className={commonStyles.label}>Number of Provinces</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={numberOfProvinces}
+                onChange={(e) => setNumberOfProvinces(e.target.value.replace(/[^\d]/g, ""))}
+                className={commonStyles.input}
+                placeholder="Enter number of provinces"
+                autoComplete="off"
+                disabled={isSaving}
+              />
+              {provinces.length > 0 && (
+                <p className="mt-2 text-sm text-teal-600">
+                  {provinces.length} provinces already configured
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center mb-6">
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
@@ -298,16 +383,10 @@ const SelectElectionYear: React.FC<{
           >
             {showHistory ? "Hide Election History" : "Show Election History"}
           </button>
-
-          {selectedYear >= 2025 && (
-            <p className="text-sm text-green-600">
-              You can proceed to set up a new election
-            </p>
-          )}
         </div>
 
         {showHistory && (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto mb-6">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -351,6 +430,18 @@ const SelectElectionYear: React.FC<{
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {showProvinceInput && (
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={handleCreateElection}
+              disabled={isSaving}
+              className={`${commonStyles.button.primary} ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isSaving ? 'Creating...' : 'Create Election'}
+            </button>
           </div>
         )}
       </div>
@@ -595,7 +686,7 @@ const ManageDistricts: React.FC = () => {
     });
 
     setFormSuccess("Districts configured successfully");
-    setTimeout(() => setFormSuccess(null), 3000);
+    setTimeout(() => setFormSuccess(null), 1000);
   };
 
   return (
@@ -832,7 +923,7 @@ const ManageParties: React.FC = () => {
     // Clear success message after 3 seconds
     setTimeout(() => {
       setFormSuccess(null);
-    }, 3000);
+    }, 1000);
   };
 
   const handleEdit = (party: Party) => {
@@ -858,7 +949,7 @@ const ManageParties: React.FC = () => {
       // Clear success message after 3 seconds
       setTimeout(() => {
         setFormSuccess(null);
-      }, 3000);
+      }, 1000);
     }
     setDeleteModalOpen(false);
     setPartyToDelete(null);
@@ -1049,7 +1140,7 @@ const AssignPartiesToDistricts: React.FC = () => {
       `Nominations updated for ${districts.find((d) => d.id === districtId)?.name
       }`
     );
-    setTimeout(() => setFormSuccess(null), 1500);
+    setTimeout(() => setFormSuccess(null), 1000);
   };
 
   return (
@@ -1239,7 +1330,7 @@ const ConfigureProvinces: React.FC = () => {
     setProvinces([...provinceNames]);
     setFormSuccess("Provinces saved successfully");
     setIsEditing(false);
-    setTimeout(() => setFormSuccess(null), 3000);
+    setTimeout(() => setFormSuccess(null), 1000);
   };
 
   const handleEdit = () => {
@@ -1254,7 +1345,7 @@ const ConfigureProvinces: React.FC = () => {
     setProvinceNames(newProvinces);
     setNumberOfProvinces(newProvinces.length);
     setFormSuccess("Province deleted successfully");
-    setTimeout(() => setFormSuccess(null), 3000);
+    setTimeout(() => setFormSuccess(null), 1000);
   };
 
   const handleAddMore = () => {
@@ -1538,7 +1629,7 @@ const SetSeatCounts: React.FC = () => {
     setDistrictSeatInputs(newInputs);
 
     setFormSuccess("Seat configuration updated successfully");
-    setTimeout(() => setFormSuccess(null), 3000);
+    setTimeout(() => setFormSuccess(null), 1000);
   };
 
   // If no districts are configured yet for the year, show a message
