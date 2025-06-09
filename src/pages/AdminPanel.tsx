@@ -74,7 +74,7 @@ const AdminPanel: React.FC = () => {
       id: 3,
       title: "Confirm Provinces & Districts",
       description: "Review the configured provinces and districts",
-      component: <ConfirmElectionProvincesDistricts />,
+      component: <ConfirmElectionProvincesDistricts onStepChange={setCurrentStep} />,
       isCompleted: isStepCompleted.step3,
     },
     {
@@ -291,7 +291,8 @@ const SelectElectionYear: React.FC<{
       console.error('Error creating election:', error);
       setError(error.message || "Failed to create election");
       setTimeout(() => setError(null), 1000);
-    } finally {
+    }
+    finally {
       setIsSaving(false);
     }
   };
@@ -515,11 +516,11 @@ const ManageDistricts: React.FC = () => {
       // Fill in existing data
       districts.forEach((district) => {
         if (district.id !== "all-districts") {
-          existingCounts[district.province] =
-            (existingCounts[district.province] || 0) + 1;
-          existingNames[district.province] = [
-            ...(existingNames[district.province] || []),
-            district.name,
+          existingCounts[district.provinceName] =
+            (existingCounts[district.provinceName] || 0) + 1;
+          existingNames[district.provinceName] = [
+            ...(existingNames[district.provinceName] || []),
+            district.districtName,
           ];
         }
       });
@@ -898,20 +899,6 @@ const ManageParties: React.FC = () => {
       });
       setFormSuccess("Party added successfully");
     }
-    // } else {
-    //   // Add new party
-    //   try {
-    //     await axios.post(
-    //       "https://68369c7d664e72d28e416510.mockapi.io/api/v1/parties",
-    //       {
-    //         name: formData.name,
-    //       }
-    //     );
-    //     setFormSuccess("Party added successfully");
-    //   } catch (error) {
-    //     setFormError("Failed to add party");
-    //   }
-    // }
     // Reset form
     setFormData({
       id: null,
@@ -1137,7 +1124,7 @@ const AssignPartiesToDistricts: React.FC = () => {
     }
     setDistrictNominations(districtId, updated);
     setFormSuccess(
-      `Nominations updated for ${districts.find((d) => d.id === districtId)?.name
+      `Nominations updated for ${districts.find((d) => d.id === districtId)?.districtName
       }`
     );
     setTimeout(() => setFormSuccess(null), 1000);
@@ -1157,7 +1144,7 @@ const AssignPartiesToDistricts: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-teal-800">
-                  {district.name}
+                  {district.districtName}
                 </span>
                 <span
                   className={`text-xs px-2 py-1 rounded ${nominated.length > 0
@@ -1229,7 +1216,7 @@ const AssignPartiesToDistricts: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-gray-700">
-                    {district.name}
+                    {district.districtName}
                   </span>
                   <span
                     className={`text-xs font-medium px-2 py-1 rounded ${isComplete
@@ -1292,7 +1279,7 @@ const ConfigureProvinces: React.FC = () => {
     setProvinceCountInput(e.target.value.replace(/[^\d]/g, ""));
   };
 
-  const commitProvinceCountInput = () => {
+  const commitProvinceCountInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const value = parseInt(provinceCountInput);
     if (!isNaN(value) && value >= 0) {
       setNumberOfProvinces(value);
@@ -1427,7 +1414,7 @@ const ConfigureProvinces: React.FC = () => {
                 onChange={handleProvinceCountInputChange}
                 onBlur={commitProvinceCountInput}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") commitProvinceCountInput();
+                  if (e.key === "Enter") commitProvinceCountInput(e);
                 }}
                 className={commonStyles.input}
                 required
@@ -1493,265 +1480,269 @@ const ConfigureProvinces: React.FC = () => {
 
 // Set Seat Counts Component
 const SetSeatCounts: React.FC = () => {
-  // Get year-specific data and year from context
-  const {
-    year,
-    electionYearData,
-    updateSettings,
-    districts: globalDistricts,
-    districtSeatInputs,
-    setDistrictSeatInputs,
-  } = useElectionData();
-  // Local state for manual-only total seat input
-  const [tempTotalSeatsInput, setTempTotalSeatsInput] = useState<string>("196");
-  const [tempTotalSeats, setTempTotalSeats] = useState<number>(196);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState<string | null>(null);
-
-  // Get the year-specific configured districts from electionYearData
-  const yearConfig = electionYearData[year];
-  // Flatten and ensure province is included
-  const configuredDistricts: District[] = yearConfig
-    ? yearConfig.flatMap(
-      (province) =>
-        province.districts.map((district) => ({
-          ...district,
-          province: province.name,
-        })) // Add province name here
-    )
-    : [];
-
-  // Remove the useEffect that initializes districtSeatInputs (since context will persist it)
+  const { year, districts, updateSettings } = useElectionData();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSavingTotal, setIsSavingTotal] = useState(false);
+  const [isSavingDistricts, setIsSavingDistricts] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [districtSeats, setDistrictSeats] = useState<Record<string, string>>({});
+  const [totalSeats, setTotalSeats] = useState<string>(localStorage.getItem(`election_${year}_totalSeats`) || "196"); // Initialize from localStorage or default
+  const [districtSeatsSaved, setDistrictSeatsSaved] = useState(false);
 
   useEffect(() => {
-    setTempTotalSeatsInput(tempTotalSeats ? String(tempTotalSeats) : "");
-  }, [tempTotalSeats]);
+    console.log(`[SetSeatCounts] useEffect triggered for year: ${year}, districts length: ${districts?.length}`);
 
-  const handleDistrictSeatInputChange = (districtId: string, value: string) => {
-    setDistrictSeatInputs((prev) => ({
+    // Load total seats from localStorage (initial state already tries this)
+    // But also ensure it's updated if the 'year' changes while component is mounted
+    const savedTotalSeats = localStorage.getItem(`election_${year}_totalSeats`);
+    if (savedTotalSeats) {
+      setTotalSeats(savedTotalSeats);
+      console.log(`[SetSeatCounts] Loaded total seats from localStorage: ${savedTotalSeats}`);
+    } else if (totalSeats !== "196") { // Only reset if it's not already default and no saved data
+      setTotalSeats("196");
+      console.log("[SetSeatCounts] Reset total seats to default.");
+    }
+
+    // Load district seats from localStorage, only when districts from context are available
+    if (districts && districts.length > 0) {
+      console.log("[SetSeatCounts] Districts from context are available.");
+      const savedDistrictSeats = localStorage.getItem(`election_${year}_districtSeats`);
+      if (savedDistrictSeats) {
+        try {
+          const parsedSeats = JSON.parse(savedDistrictSeats);
+          setDistrictSeats(parsedSeats);
+          setDistrictSeatsSaved(true); // Data loaded means it's saved
+          console.log("[SetSeatCounts] Loaded district seats from localStorage.", parsedSeats);
+        } catch (e) {
+          console.error("[SetSeatCounts] Error parsing saved district seats from localStorage:", e);
+          // Fallback to initializing from districts if parsing fails
+          const initialSeats: Record<string, string> = {};
+          districts.forEach((district) => {
+            initialSeats[district.id] = "";
+          });
+          setDistrictSeats(initialSeats);
+          setDistrictSeatsSaved(false); // If parsing failed, data is not reliably saved
+          console.log("[SetSeatCounts] Initialized district seats to empty due to parsing error.");
+        }
+      } else {
+        // Initialize with empty strings if no saved data, using districts from context
+        const initialSeats: Record<string, string> = {};
+        districts.forEach((district) => {
+          initialSeats[district.id] = "";
+        });
+        setDistrictSeats(initialSeats);
+        setDistrictSeatsSaved(false); // No data loaded means it's not saved
+        console.log("[SetSeatCounts] Initialized district seats to empty (no saved data).");
+      }
+      setIsLoading(false); // Data from context is available, so done loading initial data
+    } else {
+      // Districts from context are not yet loaded, or empty
+      console.log("[SetSeatCounts] Districts from context not yet available.");
+      setIsLoading(true);
+    }
+
+  }, [year, districts]); // Re-run when year or districts from context change
+
+  const handleSeatChange = (districtId: number, value: string) => {
+    // Only allow numbers
+    const numericValue = value.replace(/[^\d]/g, "");
+    setDistrictSeats(prev => ({
       ...prev,
-      [districtId]: value.replace(/[^\d]/g, ""),
+      [districtId]: numericValue
     }));
+    setDistrictSeatsSaved(false); // Mark as unsaved on change
   };
 
-  const commitDistrictSeatInput = (districtId: string) => {
-    const value = districtSeatInputs[districtId];
-    if (value === undefined) return;
-    const seats = value === "" ? 0 : parseInt(value);
-
-    // Update the seats in the year-specific configuration
-    const updatedYearConfig =
-      yearConfig?.map((province) => ({
-        ...province,
-        districts: province.districts.map((district) =>
-          district.id === districtId ? { ...district, seats: seats } : district
-        ),
-      })) || [];
-
-    // Flatten the updated districts to pass to updateSettings
-    const updatedDistrictsFlat: District[] = updatedYearConfig.flatMap(
-      (province) =>
-        province.districts.map((district) => ({
-          ...district,
-          province: province.name,
-        })) // Add province name here again for saving
-    );
-
-    // Include the 'all-districts' placeholder if it exists in the original districts
-    const allDistrictsPlaceholder = globalDistricts.find(
-      (d) => d.id === "all-districts"
-    );
-    const finalDistrictsToSave = allDistrictsPlaceholder
-      ? [...updatedDistrictsFlat, allDistrictsPlaceholder]
-      : updatedDistrictsFlat;
-
-    updateSettings?.({
-      districts: finalDistrictsToSave, // Pass the updated flattened list
-      totalSeats: tempTotalSeats,
-    });
+  const calculateTotalDistrictSeats = () => {
+    return Object.values(districtSeats).reduce((sum, seats) => {
+      return sum + (parseInt(seats) || 0);
+    }, 0);
   };
 
-  const handleTempTotalSeatsInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setTempTotalSeatsInput(e.target.value.replace(/[^\d]/g, ""));
-  };
+  const handleSaveTotalSeats = async () => {
+    setIsSavingTotal(true);
+    setError(null);
+    setSuccess(null);
 
-  const commitTempTotalSeatsInput = () => {
-    const value = parseInt(tempTotalSeatsInput);
-    if (!isNaN(value)) {
-      setTempTotalSeats(value);
+    try {
+      const response = await fetch('http://localhost:8000/election/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([{
+          electionYear: year,
+          noOfProvinces: districts.length,
+          totalSeats: parseInt(totalSeats)
+        }])
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSuccess("Total seats updated successfully");
+        // Store total seats in localStorage
+        localStorage.setItem(`election_${year}_totalSeats`, totalSeats);
+      } else {
+        setError(result.message || "Failed to update total seats");
+      }
+    } catch (err) {
+      setError("Error updating total seats");
+      console.error('Error updating total seats:', err);
+    }
+    finally {
+      setIsSavingTotal(false);
+      setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+      }, 2000);
     }
   };
 
-  const handleSetTotalSeats = () => {
-    if (tempTotalSeats <= 0) {
-      setFormError("Total seats must be greater than 0");
-      return;
+  const handleSaveDistrictSeats = async () => {
+    setIsSavingDistricts(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Prepare the data for the API
+      const districtResults = districts.map(district => ({
+        idDistrict: district.id,
+        idElection: year,
+        totalVotes: 0, // These will be updated later
+        rejectedVotes: 0,
+        noOfSeats: parseInt(districtSeats[district.id]) || 0
+      }));
+
+      const response = await fetch('http://localhost:8000/results/district', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(districtResults)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setSuccess("District seat allocations saved successfully");
+        // Store district seats in localStorage
+        localStorage.setItem(`election_${year}_districtSeats`, JSON.stringify(districtSeats));
+        setDistrictSeatsSaved(true); // Mark as saved
+      } else {
+        setError(result.message || "Failed to save district seat allocations");
+      }
+    } catch (err) {
+      setError("Error saving district seat allocations");
+      console.error('Error saving district seat allocations:', err);
     }
-
-    // Use the local input state for seats
-    const updatedDistricts = configuredDistricts.map((district) => ({
-      ...district,
-      seats: parseInt(districtSeatInputs[district.id]) || 0,
-    }));
-
-    const currentTotalDistrictSeats = updatedDistricts.reduce(
-      (sum, district) => sum + (district.seats || 0),
-      0
-    );
-
-    if (tempTotalSeats < currentTotalDistrictSeats) {
-      setFormError(
-        `Total seats cannot be less than current district seats (${currentTotalDistrictSeats})`
-      );
-      return;
+    finally {
+      setIsSavingDistricts(false);
+      setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+      }, 2000);
     }
-
-    // Include the 'all-districts' placeholder if it exists in the original districts
-    const allDistrictsPlaceholder = globalDistricts.find(
-      (d) => d.id === "all-districts"
-    );
-    const finalDistrictsToSave = allDistrictsPlaceholder
-      ? [...updatedDistricts, allDistrictsPlaceholder]
-      : updatedDistricts;
-
-    updateSettings?.({
-      districts: finalDistrictsToSave,
-      totalSeats: tempTotalSeats,
-    });
-
-    // After saving, update local state to reflect saved seats
-    const newInputs: Record<string, string> = {};
-    updatedDistricts.forEach((d) => {
-      newInputs[d.id] = d.seats === 0 ? "" : String(d.seats);
-    });
-    setDistrictSeatInputs(newInputs);
-
-    setFormSuccess("Seat configuration updated successfully");
-    setTimeout(() => setFormSuccess(null), 1000);
   };
 
-  // If no districts are configured yet for the year, show a message
-  if (!yearConfig || configuredDistricts.length === 0) {
+  if (isLoading) {
     return (
-      <div className={commonStyles.container}>
-        <div className={commonStyles.card}>
-          <h2 className={commonStyles.title}>Configure Parliament Seats</h2>
-          <div className="text-center py-8">
-            <p className="text-gray-600">
-              Please configure provinces and districts in the previous steps
-              first for the selected year.
-            </p>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <div className="text-teal-600">Loading districts...</div>
       </div>
     );
   }
 
-  // Calculate current total district seats from local input state
-  const currentTotalDistrictSeats = Object.values(districtSeatInputs).reduce(
-    (sum, val) => sum + (parseInt(val) || 0),
-    0
-  );
-
   return (
-    <div className={commonStyles.container}>
-      <div className={commonStyles.card}>
-        <h2 className={commonStyles.title}>Configure Parliament Seats</h2>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-teal-800 mb-4">
+        Set Seat Counts for {year}
+      </h2>
 
-        {formError && (
-          <div className={commonStyles.alert.error}>{formError}</div>
-        )}
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-md">
+          {error}
+        </div>
+      )}
 
-        {formSuccess && (
-          <div className={commonStyles.alert.success}>{formSuccess}</div>
-        )}
+      {success && (
+        <div className="bg-green-50 text-green-600 p-4 rounded-md">
+          {success}
+        </div>
+      )}
 
-        <div className="space-y-8">
-          {/* Total Seats Section */}
-          <div className="border-b pb-6">
-            <h3 className="text-lg font-semibold text-teal-800 mb-4">
-              Total Parliament Seats
-            </h3>
-            <div className="flex items-center space-x-4">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        {/* Total Seats Section */}
+        <div className="mb-8 border-b pb-6">
+          <h3 className="text-lg font-medium text-teal-800 mb-4">Total Parliament Seats</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Total Seats
+              </label>
               <input
                 type="text"
-                inputMode="numeric"
-                min="1"
-                value={tempTotalSeatsInput}
-                onChange={handleTempTotalSeatsInputChange}
-                onBlur={commitTempTotalSeatsInput}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commitTempTotalSeatsInput();
-                }}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
-                autoComplete="off"
+                value={totalSeats}
+                onChange={(e) => setTotalSeats(e.target.value.replace(/[^\d]/g, ""))}
+                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
+                placeholder="Total seats"
               />
-              <div className="text-sm text-gray-600">
-                Current District Seats: {currentTotalDistrictSeats}
-                {currentTotalDistrictSeats !== tempTotalSeats && (
-                  <span className="ml-2 text-red-600">
-                    ({tempTotalSeats - currentTotalDistrictSeats} seats
-                    remaining)
-                  </span>
-                )}
-              </div>
+            </div>
+            <button
+              onClick={handleSaveTotalSeats}
+              disabled={isSavingTotal}
+              className={`px-4 py-2 rounded-md ${isSavingTotal
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-teal-600 hover:bg-teal-700"
+                } text-white transition-colors`}
+            >
+              {isSavingTotal ? "Saving..." : "Save Total Seats"}
+            </button>
+          </div>
+        </div>
+
+        {/* District Seats Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-teal-800">District Seat Allocation</h3>
+            <div className="text-sm text-gray-600">
+              Current Total: {calculateTotalDistrictSeats()} / {totalSeats} seats
             </div>
           </div>
-
-          {/* District Seats Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-teal-800 mb-4">
-              Assign Seats to Districts
-            </h3>
-            <div className="space-y-4">
-              {configuredDistricts.map((district) => (
-                <div key={district.id} className="bg-gray-50 p-4 rounded-md">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {district.name}
-                      </div>
-                      {/* Display province name */}
-                      <div className="text-sm text-gray-600">
-                        {district.province}
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {districts.map(district => (
+              <div key={district.id} className="bg-gray-50 p-4 rounded-md">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {district.districtName}
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        min="0"
-                        value={districtSeatInputs[district.id] ?? ""}
-                        onChange={(e) =>
-                          handleDistrictSeatInputChange(
-                            district.id,
-                            e.target.value
-                          )
-                        }
-                        onBlur={() => commitDistrictSeatInput(district.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter")
-                            commitDistrictSeatInput(district.id);
-                        }}
-                        className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
-                        placeholder="Seats"
-                        autoComplete="off"
-                      />
+                    <div className="text-sm text-gray-600">
+                      {district.provinceName}
                     </div>
                   </div>
+                  <input
+                    type="text"
+                    value={districtSeats[district.id] || ""}
+                    onChange={(e) => handleSeatChange(district.id, e.target.value)}
+                    className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-800 focus:border-teal-800"
+                    placeholder="Seats"
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-6">
             <button
-              onClick={handleSetTotalSeats}
-              className={commonStyles.button.primary}
+              onClick={handleSaveDistrictSeats}
+              disabled={isSavingDistricts || calculateTotalDistrictSeats() !== parseInt(totalSeats) || districtSeatsSaved}
+              className={`px-4 py-2 rounded-md ${isSavingDistricts || calculateTotalDistrictSeats() !== parseInt(totalSeats) || districtSeatsSaved
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-teal-600 hover:bg-teal-700"
+                } text-white transition-colors`}
             >
-              Save Seat Configuration
+              {isSavingDistricts ? "Saving..." : "Save District Seats"}
             </button>
           </div>
         </div>

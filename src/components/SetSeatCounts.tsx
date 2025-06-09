@@ -185,7 +185,7 @@ const SetSeatCounts: React.FC = () => {
           {/* Total Seats Section */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold text-teal-800 mb-4">
-              Total Parliament Seats
+              Total Seats
             </h3>
             <div className="flex items-center space-x-4">
               <input

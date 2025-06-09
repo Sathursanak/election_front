@@ -19,6 +19,7 @@ export interface Party {
   votes: number;
   color: string; // Color for the party
   districtId: string;
+  logoData?: string;
   percentage?: number;
   seats?: number;
   hasBonusSeat?: boolean;
