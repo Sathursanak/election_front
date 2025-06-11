@@ -97,26 +97,77 @@ import ElectionPieCharts from "../components/ElectionPieCharts";
 import SummaryTable from "../components/SummaryTable";
 import { allocateSeats, Party } from "../utils/seatAllocation";
 import DistrictResultsCharts from "../components/DistrictResultsCharts";
+import { dataService } from "../utils/dataService";
 
 const ElectionProcess: React.FC = () => {
   // --- Election Data Context ---
   const {
     year,
-    districts,
-    parties,
+    districts = [],
+    parties = [],
     selectedDistrictId,
     setSelectedDistrictId,
-    districtNominations,
-    electionStats,
+    districtNominations = {},
+    electionStats = { totalSeats: 0, totalVotes: 0, voterTurnout: 0 },
     updateDistrictVotes,
     updatePartyVotes,
-    calculatedResults,
+    calculatedResults = {},
     setCalculatedResults,
-    setParties,
   } = useElectionData();
 
   // --- UI State ---
   const userType = localStorage.getItem("userType");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch provinces and districts from database
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch both provinces and districts in parallel
+        const [provincesData, districtsData] = await Promise.all([
+          dataService.getProvince(),
+          dataService.getDistricts()
+        ]);
+
+        // Update the context with the fetched data
+        if (provincesData.length > 0) {
+          // Update provinces in context
+          const provinceNames = provincesData.map(p => p.provinceName);
+          localStorage.setItem("election_provinces", JSON.stringify(provinceNames));
+        }
+
+        if (districtsData.length > 0) {
+          // Update districts in context
+          const validDistricts = districtsData.map(d => ({
+            id: d.id,
+            districtName: d.districtName,
+            idProvince: d.idProvince,
+            provinceName: d.provinceName,
+            name: d.districtName,
+            province: d.provinceName,
+            totalVotes: d.totalVotes || 0,
+            rejectedVotes: d.rejectedVotes || 0,
+            validVotes: d.validVotes || 0,
+            seats: d.seats || 0,
+            bonusSeats: d.bonusSeats || 0,
+            bonusSeatPartyId: d.bonusSeatPartyId || null,
+          }));
+          localStorage.setItem("election_districts", JSON.stringify(validDistricts));
+        }
+
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to fetch provinces and districts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Removed unused addVotes state
   const [voteFormData, setVoteFormData] = useState({
@@ -128,7 +179,7 @@ const ElectionProcess: React.FC = () => {
 
   // --- Derived Data ---
   const isIslandWide = selectedDistrictId === "all-districts";
-  let selectedDistrict = districts.find((d) => d.id === selectedDistrictId);
+  let selectedDistrict = districts.find((d) => d.id === selectedDistrictId || d.id === Number(selectedDistrictId)) || districts[0];
   const assignedPartyIds = districtNominations[selectedDistrictId] || [];
   const getPartyById = (id: string) => parties.find((p) => p.id === id);
 
@@ -142,12 +193,13 @@ const ElectionProcess: React.FC = () => {
       id: partyId,
       name: anyParty ? anyParty.name : partyId,
       votes: 0,
-      logoData: anyParty ? anyParty.logoData : undefined,
+      color: anyParty?.color || '#000000',
       districtId: selectedDistrictId,
       percentage: 0,
       seats: 0,
       hasBonusSeat: false,
-    };
+      logoData: anyParty?.logoData,
+    } as Party;
   });
 
   let selectedParties = selectedPartiesRaw;
@@ -164,29 +216,37 @@ const ElectionProcess: React.FC = () => {
       if (!partyMap[key]) {
         partyMap[key] = { ...p, votes: 0, seats: 0, districts: new Set() };
       }
-      partyMap[key].votes += p.votes;
+      partyMap[key].votes += p.votes || 0;
       partyMap[key].seats += p.seats || 0;
       partyMap[key].districts.add(p.districtId);
     });
-    const allSeats = electionStats.totalSeats;
+    const allSeats = electionStats?.totalSeats || 0;
     const allParties = Object.values(partyMap).map((p) => ({
       ...p,
       districts: Array.from(p.districts),
-    }));
-    const allocated = allocateSeats(allParties, allSeats);
+      color: p.color || '#000000',
+      percentage: p.percentage || 0,
+      seats: p.seats || 0,
+      hasBonusSeat: p.hasBonusSeat || false,
+      logoData: p.logoData,
+    })) as Party[];
+    const allocated = allocateSeats(allParties, allSeats) as Party[];
     selectedParties = allocated;
     selectedPartiesRaw = allParties;
     const totalValidVotes = districts
       .filter((d) => d.id !== "all-districts")
-      .reduce((sum, d) => sum + d.validVotes, 0);
+      .reduce((sum, d) => sum + (d.validVotes || 0), 0);
     selectedDistrict = {
-      id: "all-districts",
+      id: "all-districts" as unknown as number,
+      districtName: "Island-wide",
+      idProvince: 0,
+      provinceName: "All",
       name: "Island-wide",
-      seats: allSeats,
-      validVotes: totalValidVotes,
-      totalVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
-      rejectedVotes: 0,
       province: "All",
+      totalVotes: allParties.reduce((sum, p) => sum + (p.votes || 0), 0),
+      validVotes: totalValidVotes,
+      rejectedVotes: 0,
+      seats: allSeats,
       bonusSeats: 0,
       bonusSeatPartyId: null,
     };
@@ -195,38 +255,37 @@ const ElectionProcess: React.FC = () => {
         (prev, curr) => (curr.votes > prev.votes ? curr : prev),
         allocated[0]
       ),
-      totalVotes: allParties.reduce((sum, p) => sum + p.votes, 0),
+      totalVotes: allParties.reduce((sum, p) => sum + (p.votes || 0), 0),
       totalSeats: allSeats,
     };
   } else {
-    selectedDistrict =
-      districts.find((d) => d.id === selectedDistrictId) || districts[0];
+    selectedDistrict = districts.find((d) => d.id === selectedDistrictId || d.id === Number(selectedDistrictId)) || districts[0];
     selectedPartiesRaw = parties.filter(
-      (p) =>
-        p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
+      (p) => p.districtId === selectedDistrictId && assignedPartyIds.includes(p.id)
     );
-    selectedParties = allocateSeats(selectedPartiesRaw, selectedDistrict.seats);
+    selectedParties = allocateSeats(selectedPartiesRaw, selectedDistrict?.seats || 0) as Party[];
   }
 
   const districtParties = !isIslandWide
     ? assignedPartyIds.map((partyId) => {
-        // Always use the full party object from parties, fallback to getPartyById
-        const party = parties.find(
-          (p) => p.id === partyId && p.districtId === selectedDistrictId
-        );
-        if (party) return { ...party };
-        const anyParty = getPartyById(partyId);
-        return {
-          id: partyId,
-          name: anyParty ? anyParty.name : partyId,
-          votes: 0,
-          logoData: anyParty ? anyParty.logoData : undefined,
-          districtId: selectedDistrictId,
-          percentage: 0,
-          seats: 0,
-          hasBonusSeat: false,
-        };
-      })
+      // Always use the full party object from parties, fallback to getPartyById
+      const party = parties.find(
+        (p) => p.id === partyId && p.districtId === selectedDistrictId
+      );
+      if (party) return { ...party };
+      const anyParty = getPartyById(partyId);
+      return {
+        id: partyId,
+        name: anyParty ? anyParty.name : partyId,
+        votes: 0,
+        logoData: anyParty ? anyParty.logoData : undefined,
+        districtId: selectedDistrictId,
+        percentage: 0,
+        seats: 0,
+        hasBonusSeat: false,
+        color: anyParty?.color || '#000000',
+      };
+    })
     : [];
 
   // --- Editable Party Votes State and Logic ---
@@ -256,7 +315,7 @@ const ElectionProcess: React.FC = () => {
   const handlePartyVotesChange = (partyId: string, value: string) => {
     // Remove leading zeros and convert to number
     const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, '') || '0');
-    
+
     setLocalDistrictParties(prev =>
       prev.map(p =>
         p.id === partyId ? { ...p, votes: numericValue } : p
@@ -286,7 +345,7 @@ const ElectionProcess: React.FC = () => {
     }
 
     const validVotes = selectedDistrict.totalVotes - selectedDistrict.rejectedVotes;
-    
+
     if (totalPartyVotes !== validVotes) {
       setPartyVotesError(
         `Sum of party votes (${totalPartyVotes}) must exactly equal valid votes (${validVotes}).`
@@ -342,22 +401,22 @@ const ElectionProcess: React.FC = () => {
     if (isIslandWide) return null;
 
     // Get parties for this district from the results
-    const districtParties = calculationDone 
-      ? calculatedParties 
+    const districtParties = calculationDone
+      ? calculatedParties
       : localDistrictParties;
 
     if (districtParties.length === 0) return null;
-    
+
     // Find the party with the highest votes
     const highestVotesParty = districtParties.reduce((prev, curr) =>
       (curr.votes || 0) > (prev.votes || 0) ? curr : prev
     );
-    
+
     // Update the district's bonusSeatPartyId
     if (selectedDistrict && highestVotesParty) {
       selectedDistrict.bonusSeatPartyId = highestVotesParty.id;
     }
-    
+
     return highestVotesParty;
   };
 
@@ -374,31 +433,36 @@ const ElectionProcess: React.FC = () => {
   const handleVoteFormChange = (field: 'totalVotes' | 'rejectedVotes', value: string) => {
     // Remove leading zeros and convert to number
     const numericValue = value === '' ? 0 : parseInt(value.replace(/^0+/, '') || '0');
-    
+
     setVoteFormData(prev => ({
       ...prev,
       [field]: numericValue
     }));
   };
 
-  const handleVoteSubmit = async (e: React.FormEvent) => {
+  const handleVoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setVoteFormError(null);
     setSuccessMessage(null);
+
+    if (voteFormData.totalVotes < 0 || voteFormData.rejectedVotes < 0) {
+      setVoteFormError("Votes cannot be negative");
+      return;
+    }
+
     if (voteFormData.rejectedVotes > voteFormData.totalVotes) {
       setVoteFormError("Rejected votes cannot exceed total votes");
       return;
     }
-    try {
-      await updateDistrictVotes({
-        districtId: selectedDistrictId,
-        totalVotes: voteFormData.totalVotes,
-        rejectedVotes: voteFormData.rejectedVotes,
-      });
-      setSuccessMessage("Votes updated successfully");
-    } catch {
-      setVoteFormError("Failed to update votes");
-    }
+
+    updateDistrictVotes({
+      districtId: selectedDistrictId,
+      totalVotes: voteFormData.totalVotes,
+      rejectedVotes: voteFormData.rejectedVotes,
+    });
+
+    setSuccessMessage("Votes updated successfully");
+    setVoteFormData({ totalVotes: 0, rejectedVotes: 0 });
   };
 
   return (
@@ -417,235 +481,251 @@ const ElectionProcess: React.FC = () => {
           <p className="text-gray-600">Parliamentary Election {year}</p>
         </header>
 
-        {successMessage && (
-          <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
-            {successMessage}
+        {loading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-teal-600">Loading provinces and districts...</div>
           </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
-            <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
-            <p className="text-2xl font-bold text-gray-900">
-              {selectedDistrict.seats}
-            </p>
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
+            {error}
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
-            <h3 className="text-sm font-medium text-gray-500">Valid Votes</h3>
-            <p className="text-2xl font-bold text-gray-900">
-              {selectedDistrict.validVotes.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
-            <h3 className="text-sm font-medium text-gray-500">
-              {isIslandWide ? "Leading Party" : "Bonus Seat Party"}
-            </h3>
-            <p className="text-2xl font-bold text-green-600">
-              {isIslandWide
-                ? islandWideStats?.leadingParty?.name || "Not Assigned"
-                : calculationDone
-                ? bonusSeatPartyName || "Not Assigned"
-                : (() => {
-                    const bonusParty = calculateBonusSeatParty(selectedDistrictId);
-                    return bonusParty ? bonusParty.name : "Not Assigned";
-                  })()}
-            </p>
-          </div>
-        </div>
+        )}
 
-        {/* Election Pie Charts for Island-wide view, hide summary and party results */}
-        {isIslandWide ? (
+        {!loading && !error && (
           <>
-            <SriLankaMap />
-            <ElectionPieCharts
-              parties={selectedParties}
-              districts={districts}
-              allParties={parties}
-            />
-          </>
-        ) : (
-          <>
-            {/* Summary Table */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-800 mb-3">
-                District Summary
-              </h2>
-              <SummaryTable district={selectedDistrict} parties={parties} />
-            </div>
-            {/* District Party Results - Always show assigned parties as a table */}
-            <div className="mb-8">
-              <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                  District Party Results
-                </h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          Party
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          Votes
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          Percentage
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          1st Round
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          2nd Round
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
-                          Total Seats
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {districtParties.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="text-center py-8 text-gray-500"
-                          >
-                            No parties assigned to this district
-                          </td>
-                        </tr>
-                      ) : (
-                        (calculationDone
-                          ? calculatedParties
-                          : localDistrictParties
-                        ).map((party, idx) => {
-                          // If calculationDone, use calculatedParties' values, else fallback to localDistrictParties
-                          let percentage = 0;
-                          let status = "Active Counting";
-                          let firstRoundSeats = 0;
-                          let secondRoundSeats = 0;
-                          let totalSeats = 0;
-                          let votes = party.votes;
-                          if (calculationDone) {
-                            // Defensive: fallback to 0 if undefined
-                            percentage =
-                              typeof party.percentage === "number"
-                                ? party.percentage
-                                : 0;
-                            status =
-                              party.qualified === false
-                                ? "Disqualified"
-                                : "Qualified";
-                            firstRoundSeats =
-                              typeof party.firstRoundSeats === "number"
-                                ? party.firstRoundSeats
-                                : 0;
-                            secondRoundSeats =
-                              typeof party.secondRoundSeats === "number"
-                                ? party.secondRoundSeats
-                                : 0;
-                            totalSeats =
-                              typeof party.totalSeats === "number"
-                                ? party.totalSeats
-                                : 0;
-                            votes =
-                              typeof party.votes === "number" ? party.votes : 0;
-                          } else {
-                            percentage =
-                              selectedDistrict &&
-                              selectedDistrict.totalVotes > 0
-                                ? (party.votes /
-                                    (selectedDistrict.totalVotes -
-                                      selectedDistrict.totalVotes * 0.05)) *
-                                  100
-                                : 0;
-                          }
-                          return (
-                            <tr key={party.id || idx}>
-                              <td className="px-6 py-4 whitespace-nowrap flex items-center space-x-3">
-                                <img
-                                  src={party.logoData}
-                                  alt={party.name}
-                                  className="w-8 h-8 object-contain"
-                                />
-                                <span className="font-medium text-gray-900">
-                                  {party.name}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {calculationDone ? (
-                                  votes
-                                ) : (
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    className="w-24 px-2 py-1 border border-gray-300 rounded"
-                                    value={party.votes === 0 ? '' : party.votes}
-                                    disabled={calculationDone}
-                                    onChange={(e) =>
-                                      handlePartyVotesChange(
-                                        party.id,
-                                        e.target.value
-                                      )
-                                    }
-                                  />
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {status}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {percentage.toFixed(1)}%
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {firstRoundSeats}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {secondRoundSeats}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {totalSeats}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Error/Success and Save Button */}
-                {partyVotesError && (
-                  <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-                    {partyVotesError}
-                  </div>
-                )}
-                {partyVotesSuccess && (
-                  <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md text-sm">
-                    {partyVotesSuccess}
-                  </div>
-                )}
-                <button
-                  className={`mt-6 px-6 py-2 rounded bg-teal-600 text-white font-semibold hover:bg-teal-700 disabled:opacity-60`}
-                  onClick={handleCalculateAndSaveVotes}
-                  disabled={
-                    calculationDone || localDistrictParties.length === 0
-                  }
-                  type="button"
-                >
-                  Save & Calculate
-                </button>
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-md">
+                {successMessage}
+              </div>
+            )}
 
-                {/* Add Charts when calculation is done */}
-                {calculationDone && calculatedParties.length > 0 && (
-                  <DistrictResultsCharts
-                    parties={calculatedParties}
-                    districtName={selectedDistrict.name}
-                  />
-                )}
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
+                <h3 className="text-sm font-medium text-gray-500">Total Seats</h3>
+                <p className="text-2xl font-bold text-gray-900">
+                  {selectedDistrict.seats}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
+                <h3 className="text-sm font-medium text-gray-500">Valid Votes</h3>
+                <p className="text-2xl font-bold text-gray-900">
+                  {selectedDistrict.validVotes.toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-teal-800">
+                <h3 className="text-sm font-medium text-gray-500">
+                  {isIslandWide ? "Leading Party" : "Bonus Seat Party"}
+                </h3>
+                <p className="text-2xl font-bold text-green-600">
+                  {isIslandWide
+                    ? islandWideStats?.leadingParty?.name || "Not Assigned"
+                    : calculationDone
+                      ? bonusSeatPartyName || "Not Assigned"
+                      : (() => {
+                        const bonusParty = calculateBonusSeatParty(selectedDistrictId);
+                        return bonusParty ? bonusParty.name : "Not Assigned";
+                      })()}
+                </p>
               </div>
             </div>
+
+            {/* Election Pie Charts for Island-wide view, hide summary and party results */}
+            {isIslandWide ? (
+              <>
+                <SriLankaMap />
+                <ElectionPieCharts
+                  parties={selectedParties}
+                  districts={districts}
+                  allParties={parties}
+                />
+              </>
+            ) : (
+              <>
+                {/* Summary Table */}
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-3">
+                    District Summary
+                  </h2>
+                  <SummaryTable district={selectedDistrict} parties={parties} />
+                </div>
+                {/* District Party Results - Always show assigned parties as a table */}
+                <div className="mb-8">
+                  <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                      District Party Results
+                    </h2>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              Party
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              Votes
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              Percentage
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              1st Round
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              2nd Round
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                              Total Seats
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {districtParties.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={7}
+                                className="text-center py-8 text-gray-500"
+                              >
+                                No parties assigned to this district
+                              </td>
+                            </tr>
+                          ) : (
+                            (calculationDone
+                              ? calculatedParties
+                              : localDistrictParties
+                            ).map((party, idx) => {
+                              // If calculationDone, use calculatedParties' values, else fallback to localDistrictParties
+                              let percentage = 0;
+                              let status = "Active Counting";
+                              let firstRoundSeats = 0;
+                              let secondRoundSeats = 0;
+                              let totalSeats = 0;
+                              let votes = party.votes;
+                              if (calculationDone) {
+                                // Defensive: fallback to 0 if undefined
+                                percentage =
+                                  typeof party.percentage === "number"
+                                    ? party.percentage
+                                    : 0;
+                                status =
+                                  party.qualified === false
+                                    ? "Disqualified"
+                                    : "Qualified";
+                                firstRoundSeats =
+                                  typeof party.firstRoundSeats === "number"
+                                    ? party.firstRoundSeats
+                                    : 0;
+                                secondRoundSeats =
+                                  typeof party.secondRoundSeats === "number"
+                                    ? party.secondRoundSeats
+                                    : 0;
+                                totalSeats =
+                                  typeof party.totalSeats === "number"
+                                    ? party.totalSeats
+                                    : 0;
+                                votes =
+                                  typeof party.votes === "number" ? party.votes : 0;
+                              } else {
+                                percentage =
+                                  selectedDistrict &&
+                                    selectedDistrict.totalVotes > 0
+                                    ? (party.votes /
+                                      (selectedDistrict.totalVotes -
+                                        selectedDistrict.totalVotes * 0.05)) *
+                                    100
+                                    : 0;
+                              }
+                              return (
+                                <tr key={party.id || idx}>
+                                  <td className="px-6 py-4 whitespace-nowrap flex items-center space-x-3">
+                                    <img
+                                      src={party.logoData}
+                                      alt={party.name}
+                                      className="w-8 h-8 object-contain"
+                                    />
+                                    <span className="font-medium text-gray-900">
+                                      {party.name}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {calculationDone ? (
+                                      votes
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        className="w-24 px-2 py-1 border border-gray-300 rounded"
+                                        value={party.votes === 0 ? '' : party.votes}
+                                        disabled={calculationDone}
+                                        onChange={(e) =>
+                                          handlePartyVotesChange(
+                                            party.id,
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {status}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {percentage.toFixed(1)}%
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {firstRoundSeats}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {secondRoundSeats}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {totalSeats}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Error/Success and Save Button */}
+                    {partyVotesError && (
+                      <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+                        {partyVotesError}
+                      </div>
+                    )}
+                    {partyVotesSuccess && (
+                      <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-md text-sm">
+                        {partyVotesSuccess}
+                      </div>
+                    )}
+                    <button
+                      className={`mt-6 px-6 py-2 rounded bg-teal-600 text-white font-semibold hover:bg-teal-700 disabled:opacity-60`}
+                      onClick={handleCalculateAndSaveVotes}
+                      disabled={
+                        calculationDone || localDistrictParties.length === 0
+                      }
+                      type="button"
+                    >
+                      Save & Calculate
+                    </button>
+
+                    {/* Add Charts when calculation is done */}
+                    {calculationDone && calculatedParties.length > 0 && (
+                      <DistrictResultsCharts
+                        parties={calculatedParties}
+                        districtName={selectedDistrict.name}
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

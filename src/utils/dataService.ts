@@ -74,11 +74,11 @@ export const dataService = {
       throw error;
     }
   },
-  async getParties(): Promise<Party[]> {
+  async getParties(electionId: number): Promise<Party[]> {
     if (USE_MOCK) return initialParties;
     try {
-      const res = await axios.get(`${API_BASE}/parties`);
-      return Array.isArray(res.data) ? res.data : [];
+      const res = await axios.get(`${API_BASE}/parties?electionId=${electionId}`);
+      return Array.isArray(res.data.parties) ? res.data.parties : [];
     } catch (error) {
       console.error('Error fetching parties:', error);
       return [];

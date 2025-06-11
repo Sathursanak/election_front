@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useElectionData } from "../context/ElectionDataContext";
-import SriLankaMap from "../components/SriLankaMap";
 // import HomeHeroSlider from "../components/HomeHeroSlider";
 
 const Home: React.FC = () => {

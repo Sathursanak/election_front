@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useElectionData } from "../context/ElectionDataContext";
+import axios from "axios";
+import { Party } from "../types";
+import { color, motion } from "framer-motion";
+import { Edit2, Trash2 } from "lucide-react";
+import { dataService } from "../utils/dataService";
 
-// Import the two components from AdminPanel (copying their code here for now)
-
-// --- ManageParties Component (copied from AdminPanel) ---
 const commonStyles = {
   container: "max-w-4xl mx-auto",
   card: "bg-white rounded-lg shadow-md p-6 border-2 border-teal-800",
@@ -38,12 +40,134 @@ const commonStyles = {
     error:
       "bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4",
   },
+  flag: {
+    container: "relative flex items-center",
+    pole: "w-2 h-16 bg-gray-600 rounded-t",
+    flag: "relative w-24 h-12 overflow-hidden",
+    wave: "absolute inset-0 bg-current opacity-20",
+    base: "absolute inset-0",
+    shadow: "absolute inset-0 bg-black opacity-5"
+  }
 };
 
-import { Edit2, Trash2 } from "lucide-react";
+const FlagDisplay: React.FC<{ color: string }> = ({ color }) => {
+  return (
+    <div className="relative flex items-center">
+      <svg width="4" height="64" viewBox="0 0 4 64" className="mr-1">
+        <motion.path
+          d="M2 0 L2 64"
+          stroke="#4B5563"
+          strokeWidth="4"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+        <motion.circle
+          cx="2"
+          cy="0"
+          r="2"
+          fill="#4B5563"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+      </svg>
+
+      <motion.svg
+        width="96"
+        height="48"
+        viewBox="0 0 96 48"
+        className="relative"
+        initial={{ rotate: -5 }}
+        animate={{ rotate: 5 }}
+        transition={{
+          repeat: Infinity,
+          repeatType: "reverse",
+          duration: 2,
+          ease: "easeInOut"
+        }}
+      >
+        <defs>
+          <linearGradient id={`wave-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <motion.stop
+              offset="0%"
+              stopColor={color}
+              initial={{ stopOpacity: 0.8 }}
+              animate={{ stopOpacity: 0.6 }}
+              transition={{
+                repeat: Infinity,
+                repeatType: "reverse",
+                duration: 2
+              }}
+            />
+            <motion.stop
+              offset="100%"
+              stopColor={color}
+              initial={{ stopOpacity: 0.6 }}
+              animate={{ stopOpacity: 0.8 }}
+              transition={{
+                repeat: Infinity,
+                repeatType: "reverse",
+                duration: 2
+              }}
+            />
+          </linearGradient>
+        </defs>
+
+        <motion.path
+          d="M0 0 L96 0 L96 48 L0 48 Z"
+          fill={color}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.5 }}
+        />
+
+        <motion.path
+          d="M0 0 Q24 12 48 0 T96 0 L96 48 L0 48 Z"
+          fill={`url(#wave-${color})`}
+          initial={{ y: 0 }}
+          animate={{ y: [0, 4, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 2,
+            ease: "easeInOut"
+          }}
+        />
+
+        <motion.path
+          d="M0 0 L8 4 L8 44 L0 48 Z"
+          fill={color}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ duration: 0.5 }}
+        />
+      </motion.svg>
+    </div>
+  );
+};
+
+const globalStyles = `
+  @keyframes wave {
+    0% {
+      transform: translateX(0) translateY(0) skew(0deg);
+    }
+    25% {
+      transform: translateX(-5px) translateY(2px) skew(2deg);
+    }
+    50% {
+      transform: translateX(-10px) translateY(5px) skew(0deg);
+    }
+    75% {
+      transform: translateX(-5px) translateY(2px) skew(-2deg);
+    }
+    100% {
+      transform: translateX(0) translateY(0) skew(0deg);
+    }
+  }
+`;
 
 const ManageParties: React.FC = () => {
-  const { parties, addParty, updateParty, deleteParty } = useElectionData();
+  const { addParty, updateParty, deleteParty, year } = useElectionData();
   const [formData, setFormData] = React.useState<{
     id: string | null;
     name: string;
@@ -59,6 +183,7 @@ const ManageParties: React.FC = () => {
   const [formSuccess, setFormSuccess] = React.useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [partyToDelete, setPartyToDelete] = React.useState<any>(null);
+  const [parties, setParties] = React.useState<Party[]>([]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -97,12 +222,21 @@ const ManageParties: React.FC = () => {
       setFormError("Party color is required");
       return false;
     }
+    // Check for duplicate colors
+    const colorExists = parties.some(
+      (p: any) => p.color.toLowerCase() === formData.color.toLowerCase() && p.id !== formData.id
+    );
+    if (colorExists) {
+      setFormError("This color is already used by another party");
+      return false;
+    }
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     const nameExists = parties.some(
       (p: any) =>
         p.name.trim().toLowerCase() === formData.name.trim().toLowerCase() &&
@@ -112,35 +246,108 @@ const ManageParties: React.FC = () => {
       setFormError("A party with this name already exists.");
       return;
     }
-    if (formData.id) {
-      const existingParty = parties.find((p: any) => p.id === formData.id);
-      if (existingParty) {
-        updateParty({
-          ...existingParty,
-          name: formData.name,
+
+    try {
+      if (formData.id) {
+        // Update existing party
+        const existingParty = parties.find((p: any) => p.id === formData.id);
+        if (existingParty) {
+          updateParty({
+            ...existingParty,
+            name: formData.name,
+            color: formData.color,
+          });
+          setFormSuccess("Party updated successfully");
+        }
+      } else {
+        // Add new party
+        const idElection = year;
+
+        console.log('Sending party data:', {
+          partyName: formData.name,
           color: formData.color,
+          idElection: idElection
         });
-        setFormSuccess("Party updated successfully");
+
+        const response = await axios.post('http://localhost:8000/party/add', {
+          partyName: formData.name,
+          partyColor: formData.color,
+          idElection: idElection
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        console.log('API Response:', response.data);
+
+        if (response.data.status === 'success') {
+          getParties()
+          const newParty = {
+            id: response.data.partyId.toString(),
+            name: formData.name,
+            votes: 0,
+            color: formData.color,
+            districtId: formData.districtId,
+          } as Party;
+          addParty(newParty);
+          setFormSuccess("Party added successfully");
+        } else {
+          setFormError(response.data.message || "Failed to add party");
+          return;
+        }
       }
-    } else {
-      addParty({
-        name: formData.name,
-        votes: 0,
-        color: formData.color,
-        districtId: formData.districtId,
+
+      // Reset form
+      setFormData({
+        id: null,
+        name: "",
+        color: "#000000",
+        districtId: "all-districts",
       });
-      setFormSuccess("Party added successfully");
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setFormSuccess(null);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error adding party:', error);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        setFormError(error.response.data.message || `Server error: ${error.response.status}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+        setFormError("No response from server. Please check if the server is running.");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error setting up request:', error.message);
+        setFormError("Failed to add party. Please try again.");
+      }
     }
-    setFormData({
-      id: null,
-      name: "",
-      color: "#000000",
-      districtId: "all-districts",
-    });
-    setTimeout(() => {
-      setFormSuccess(null);
-    }, 3000);
   };
+
+
+  const getParties = async () => {
+    const idElection = year;
+    const par = await dataService.getParties(idElection)
+    const convertData = par.map((p) => {
+      return {
+        id: p.id,
+        name: p.partyName,
+        color: p.partyColor
+      }
+    })
+    setParties(convertData)
+  }
+
+  useEffect(() => {
+    getParties()
+  }, [])
 
   const handleEdit = (party: any) => {
     setFormData({
@@ -220,10 +427,6 @@ const ManageParties: React.FC = () => {
                   onChange={handleChange}
                   className="h-10 w-20 cursor-pointer"
                 />
-                <div
-                  className="w-10 h-10 rounded-full border border-gray-300"
-                  style={{ backgroundColor: formData.color }}
-                />
               </div>
             </div>
           </div>
@@ -260,10 +463,7 @@ const ManageParties: React.FC = () => {
                   </div>
                 </td>
                 <td className={commonStyles.table.cell}>
-                  <div
-                    className="w-8 h-8 rounded-full border border-gray-300"
-                    style={{ backgroundColor: party.color }}
-                  />
+                  <FlagDisplay color={party.color} />
                 </td>
                 <td className={commonStyles.table.cell}>
                   <button
@@ -398,11 +598,8 @@ const AssignPartiesToDistricts: React.FC<{
                         onChange={() => handleCheck(district.id, party.id)}
                         className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
                       />
-                      <div
-                        className="w-8 h-8 rounded-full border border-gray-300"
-                        style={{ backgroundColor: party.color }}
-                      />
-                      <span className="text-sm">{party.name}</span>
+                      <FlagDisplay color={party.partyColor} />
+                      <span className="text-sm">{party.partyName}</span>
                     </label>
                   ))
                 )}

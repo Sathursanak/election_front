@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useElectionData } from "../context/ElectionDataContext";
+import { useElectionData, } from "../context/ElectionDataContext";
 import { Party, District } from "../types";
 import { Edit2, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { ElectionHistory, electionHistory } from "../data/electionHistory";
@@ -254,8 +254,16 @@ const SelectElectionYear: React.FC<{
   };
 
   const handleCreateElection = async () => {
-    if (!numberOfProvinces || parseInt(numberOfProvinces) <= 0) {
+    const numProvinces = parseInt(numberOfProvinces);
+
+    if (!numberOfProvinces || numProvinces <= 0) {
       setError("Please enter a valid number of provinces");
+      return;
+    }
+
+    // Add validation for minimum province count
+    if (provinces.length > 0 && numProvinces < provinces.length) {
+      setError(`Number of provinces must be at least ${provinces.length}`);
       return;
     }
 
@@ -263,7 +271,7 @@ const SelectElectionYear: React.FC<{
     try {
       const electionData = {
         electionYear: parseInt(yearInput),
-        noOfProvinces: parseInt(numberOfProvinces),
+        noOfProvinces: numProvinces,
         totalSeats: 0 // Will be updated in later steps
       };
 
@@ -361,7 +369,14 @@ const SelectElectionYear: React.FC<{
                 type="text"
                 inputMode="numeric"
                 value={numberOfProvinces}
-                onChange={(e) => setNumberOfProvinces(e.target.value.replace(/[^\d]/g, ""))}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d]/g, "");
+                  const numValue = parseInt(value);
+                  if (value === "" || numValue >= provinces.length) {
+                    setNumberOfProvinces(value);
+                    setError(null);
+                  }
+                }}
                 className={commonStyles.input}
                 placeholder="Enter number of provinces"
                 autoComplete="off"
@@ -373,6 +388,7 @@ const SelectElectionYear: React.FC<{
                 </p>
               )}
             </div>
+            {provinces.length > 0}
           </div>
         )}
 
@@ -1480,69 +1496,69 @@ const ConfigureProvinces: React.FC = () => {
 
 // Set Seat Counts Component
 const SetSeatCounts: React.FC = () => {
-  const { year, districts, updateSettings } = useElectionData();
+  const { year, updateSettings } = useElectionData();
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingTotal, setIsSavingTotal] = useState(false);
   const [isSavingDistricts, setIsSavingDistricts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [districtSeats, setDistrictSeats] = useState<Record<string, string>>({});
-  const [totalSeats, setTotalSeats] = useState<string>(localStorage.getItem(`election_${year}_totalSeats`) || "196"); // Initialize from localStorage or default
+  const [totalSeats, setTotalSeats] = useState<string>("196");
   const [districtSeatsSaved, setDistrictSeatsSaved] = useState(false);
+  const [districts, setDistricts] = useState<District[]>([]);
 
+  // Load data from database on component mount
   useEffect(() => {
-    console.log(`[SetSeatCounts] useEffect triggered for year: ${year}, districts length: ${districts?.length}`);
+    const loadData = async () => {
+      try {
+        // Load total seats from database
+        const response = await fetch(`http://localhost:8000/election/${year}`);
+        const data = await response.json();
+        if (data && data.totalSeats) {
+          setTotalSeats(String(data.totalSeats));
+          localStorage.setItem(`election_${year}_totalSeats`, String(data.totalSeats));
+        }
 
-    // Load total seats from localStorage (initial state already tries this)
-    // But also ensure it's updated if the 'year' changes while component is mounted
-    const savedTotalSeats = localStorage.getItem(`election_${year}_totalSeats`);
-    if (savedTotalSeats) {
-      setTotalSeats(savedTotalSeats);
-      console.log(`[SetSeatCounts] Loaded total seats from localStorage: ${savedTotalSeats}`);
-    } else if (totalSeats !== "196") { // Only reset if it's not already default and no saved data
-      setTotalSeats("196");
-      console.log("[SetSeatCounts] Reset total seats to default.");
-    }
-
-    // Load district seats from localStorage, only when districts from context are available
-    if (districts && districts.length > 0) {
-      console.log("[SetSeatCounts] Districts from context are available.");
-      const savedDistrictSeats = localStorage.getItem(`election_${year}_districtSeats`);
-      if (savedDistrictSeats) {
-        try {
-          const parsedSeats = JSON.parse(savedDistrictSeats);
-          setDistrictSeats(parsedSeats);
-          setDistrictSeatsSaved(true); // Data loaded means it's saved
-          console.log("[SetSeatCounts] Loaded district seats from localStorage.", parsedSeats);
-        } catch (e) {
-          console.error("[SetSeatCounts] Error parsing saved district seats from localStorage:", e);
-          // Fallback to initializing from districts if parsing fails
+        // Load district seats from database
+        const districtResponse = await fetch(`http://localhost:8000/results/district/${year}`);
+        const districtData = await districtResponse.json();
+        if (districtData && districtData.length > 0) {
+          const seats: Record<string, string> = {};
+          districtData.forEach((district: any) => {
+            seats[district.idDistrict] = String(district.noOfSeats);
+          });
+          setDistrictSeats(seats);
+          localStorage.setItem(`election_${year}_districtSeats`, JSON.stringify(seats));
+          setDistrictSeatsSaved(true);
+        } else if (districts && districts.length > 0) {
+          // Initialize with empty strings if no data in database
           const initialSeats: Record<string, string> = {};
           districts.forEach((district) => {
             initialSeats[district.id] = "";
           });
           setDistrictSeats(initialSeats);
-          setDistrictSeatsSaved(false); // If parsing failed, data is not reliably saved
-          console.log("[SetSeatCounts] Initialized district seats to empty due to parsing error.");
         }
-      } else {
-        // Initialize with empty strings if no saved data, using districts from context
-        const initialSeats: Record<string, string> = {};
-        districts.forEach((district) => {
-          initialSeats[district.id] = "";
-        });
-        setDistrictSeats(initialSeats);
-        setDistrictSeatsSaved(false); // No data loaded means it's not saved
-        console.log("[SetSeatCounts] Initialized district seats to empty (no saved data).");
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setError('Failed to load data from database');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false); // Data from context is available, so done loading initial data
-    } else {
-      // Districts from context are not yet loaded, or empty
-      console.log("[SetSeatCounts] Districts from context not yet available.");
-      setIsLoading(true);
-    }
+    };
 
-  }, [year, districts]); // Re-run when year or districts from context change
+
+    dataService.getDistricts().then((res) => {
+      console.log("dataService.getDistricts(", res);
+      setDistricts(res)
+      if (year && res && res.length > 0) {
+        loadData();
+      }
+    })
+
+
+
+
+  }, [year]);
 
   const handleSeatChange = (districtId: number, value: string) => {
     // Only allow numbers
@@ -1582,7 +1598,6 @@ const SetSeatCounts: React.FC = () => {
 
       if (response.ok) {
         setSuccess("Total seats updated successfully");
-        // Store total seats in localStorage
         localStorage.setItem(`election_${year}_totalSeats`, totalSeats);
       } else {
         setError(result.message || "Failed to update total seats");
@@ -1610,7 +1625,7 @@ const SetSeatCounts: React.FC = () => {
       const districtResults = districts.map(district => ({
         idDistrict: district.id,
         idElection: year,
-        totalVotes: 0, // These will be updated later
+        totalVotes: 0,
         rejectedVotes: 0,
         noOfSeats: parseInt(districtSeats[district.id]) || 0
       }));
@@ -1627,9 +1642,8 @@ const SetSeatCounts: React.FC = () => {
 
       if (response.ok) {
         setSuccess("District seat allocations saved successfully");
-        // Store district seats in localStorage
         localStorage.setItem(`election_${year}_districtSeats`, JSON.stringify(districtSeats));
-        setDistrictSeatsSaved(true); // Mark as saved
+        setDistrictSeatsSaved(true);
       } else {
         setError(result.message || "Failed to save district seat allocations");
       }

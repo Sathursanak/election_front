@@ -101,10 +101,10 @@ function calculateDistrictResults(
 }
 
 const Results: React.FC = () => {
-  const { 
-    year, 
-    districts, 
-    parties, 
+  const {
+    year,
+    districts,
+    parties,
     selectedDistrictId,
     districtNominations,
     electionStats,
@@ -124,7 +124,7 @@ const Results: React.FC = () => {
   // Get assigned parties for the selected district
   const assignedPartyIds = districtNominations[selectedDistrictId] || [];
   const getPartyById = (id: string) => parties.find((p) => p.id === id);
-  
+
   let selectedPartiesRaw = assignedPartyIds.map((partyId) => {
     const party = parties.find(
       (p) => p.id === partyId && p.districtId === selectedDistrictId
@@ -172,11 +172,11 @@ const Results: React.FC = () => {
     const allocated = allocateSeats(allParties, allSeats);
     selectedParties = allocated;
     selectedPartiesRaw = allParties;
-    
+
     const totalValidVotes = districts
       .filter((d) => d.id !== "all-districts")
       .reduce((sum, d) => sum + d.validVotes, 0);
-    
+
     selectedDistrict = {
       id: "all-districts",
       name: "Island-wide",
@@ -188,7 +188,7 @@ const Results: React.FC = () => {
       bonusSeats: 0,
       bonusSeatPartyId: null,
     };
-    
+
     islandWideStats = {
       leadingParty: allocated.reduce(
         (prev, curr) => (curr.votes || 0) > (prev.votes || 0) ? curr : prev,
@@ -220,22 +220,22 @@ const Results: React.FC = () => {
     if (isIslandWide) return null;
 
     // Get parties for this district from the results
-    const districtParties = calculationDone 
-      ? calculatedParties 
+    const districtParties = calculationDone
+      ? calculatedParties
       : selectedParties;
 
     if (districtParties.length === 0) return null;
-    
+
     // Find the party with the highest votes
     const highestVotesParty = districtParties.reduce((prev, curr) =>
       (curr.votes || 0) > (prev.votes || 0) ? curr : prev
     );
-    
+
     // Update the district's bonusSeatPartyId
     if (selectedDistrict && highestVotesParty) {
       selectedDistrict.bonusSeatPartyId = highestVotesParty.id;
     }
-    
+
     return highestVotesParty;
   };
 
@@ -287,8 +287,8 @@ const Results: React.FC = () => {
               {isIslandWide
                 ? islandWideStats?.leadingParty?.name || "Not Assigned"
                 : calculationDone
-                ? bonusSeatPartyName || "Not Assigned"
-                : (() => {
+                  ? bonusSeatPartyName || "Not Assigned"
+                  : (() => {
                     const bonusParty = calculateBonusSeatParty(selectedDistrictId);
                     return bonusParty ? bonusParty.name : "Not Assigned";
                   })()}
@@ -321,7 +321,7 @@ const Results: React.FC = () => {
               <div className="mb-8">
                 <div className="bg-white rounded-lg shadow-md p-6 border-2 border-teal-800">
                   <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                    District Party Results 
+                    District Party Results
                   </h2>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -393,7 +393,7 @@ const Results: React.FC = () => {
               </div>
             )}
 
-         
+
 
             {/* Add Charts when calculation is done */}
             {calculationDone && calculatedParties.length > 0 && (

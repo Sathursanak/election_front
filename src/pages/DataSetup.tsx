@@ -5,7 +5,7 @@ import { IProvince } from "../types";
 
 // Common styles for all step components (copied from AdminPanel)
 const commonStyles = {
-  container: "max-w-4xl mx-auto",
+  container: "max-w-4xl mx-auto my-4",
   card: "bg-white rounded-lg shadow-md p-6 border-2 border-teal-800",
   title: "text-xl font-semibold mb-4 text-teal-800",
   formGroup: "mb-6",
@@ -187,7 +187,7 @@ const DataSetup: React.FC = () => {
           setDistrictStepDone(false);
           setConfirmStep(false);
           break;
-        case "confirm":
+        case "View":
           setProvinceStepDone(true);
           setDistrictStepDone(true);
           setConfirmStep(true);
@@ -562,7 +562,7 @@ const DataSetup: React.FC = () => {
 
     // Mark setup as complete in sessionStorage
     sessionStorage.setItem(DATA_SETUP_COMPLETE_KEY, "true");
-    sessionStorage.setItem(CURRENT_STEP_KEY, "confirm");
+    sessionStorage.setItem(CURRENT_STEP_KEY, "View");
     sessionStorage.setItem(PROVINCE_STEP_DONE_KEY, "true");
     sessionStorage.setItem(DISTRICT_STEP_DONE_KEY, "true");
     setIsSetupCompleteInSession(true);
@@ -738,7 +738,7 @@ const DataSetup: React.FC = () => {
             className={`flex-1 h-0.5 ${step > 1 ? "bg-green-500" : "bg-gray-300"
               }`}
           ></div>
-          {stepCircle(2, "Confirm")}
+          {stepCircle(2, "View")}
         </div>
         <div className="max-w-3xl mx-auto">
           <div className={`rounded-2xl shadow-xl p-8 ${commonStyles.card}`}>
@@ -952,7 +952,7 @@ const DataSetup: React.FC = () => {
             {provinceStepDone && districtStepDone && (
               <>
                 <h2 className={`${commonStyles.title} mb-6`}>
-                  Confirm Data Setup
+                  View of setted data
                 </h2>
                 <div className="mb-8">
                   <h3 className="font-semibold mb-4 text-teal-800">
@@ -992,7 +992,7 @@ const DataSetup: React.FC = () => {
                     className={commonStyles.button.primary}
                     onClick={handleConfirm}
                   >
-                    Confirm & Save
+                    Next
                   </button>
                 </div>
               </>

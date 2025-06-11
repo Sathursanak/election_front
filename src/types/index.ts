@@ -1,16 +1,16 @@
 export interface District {
-  id: number;
+  id: string | number; // Allow number for new backend IDs
   districtName: string;
-  idProvince: number;
+  name: string;
+  idProvince: number | string;
   provinceName: string;
-  name?: string;
-  province?: string;
-  totalVotes?: number;
-  rejectedVotes?: number;
-  validVotes?: number;
-  seats?: number;
-  bonusSeats?: number;
-  bonusSeatPartyId?: string | null;
+  province: string;
+  totalVotes: number;
+  rejectedVotes: number;
+  validVotes: number;
+  seats: number;
+  bonusSeats: number;
+  bonusSeatPartyId: string | null;
 }
 
 export interface Party {
@@ -47,4 +47,13 @@ export interface IProvince {
   id: string;
   provinceName: string;
   noOfDistricts: number;
+}
+
+// Add new interfaces for backend data structure if necessary
+// For example, if backend returns a Party with partyName and partyColor
+export interface BackendParty {
+  id: number;
+  partyName: string;
+  idElection: number;
+  partyColor: string;
 }

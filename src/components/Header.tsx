@@ -49,7 +49,7 @@ const Header: React.FC = () => {
                   Data Setup
                 </NavLink>
                 <NavLink to="/admin" isActive={isActiveLink("/admin")}>
-                 Election Setup
+                  Election Setup
                 </NavLink>
                 <NavLink
                   to="/party-registration"
@@ -58,8 +58,8 @@ const Header: React.FC = () => {
                   Party Registration
                 </NavLink>
                 <NavLink
-                  to="/election-process"
-                  isActive={isActiveLink("/election-process")}
+                  to="/ElectionProcess"
+                  isActive={isActiveLink("/ElectionProcess")}
                 >
                   Election Process
                 </NavLink>
@@ -115,7 +115,7 @@ const Header: React.FC = () => {
           >
             Home
           </MobileNavLink>
-          
+
           {userType === "admin" && (
             <>
               <MobileNavLink
@@ -140,8 +140,8 @@ const Header: React.FC = () => {
                 Party Registration
               </MobileNavLink>
               <MobileNavLink
-                to="/election-process"
-                isActive={isActiveLink("/election-process")}
+                to="/ElectionProcess"
+                isActive={isActiveLink("/ElectionProcess")}
                 onClick={closeMenu}
               >
                 Election Process
@@ -203,9 +203,8 @@ const NavLink: React.FC<NavLinkProps> = ({ to, isActive, children }) => {
   return (
     <Link
       to={to}
-      className={`transition duration-300 ease-in-out hover:text-[#10B981] ${
-        isActive ? "font-semibold border-b-2 border-[#10B981]" : ""
-      }`}
+      className={`transition duration-300 ease-in-out hover:text-[#10B981] ${isActive ? "font-semibold border-b-2 border-[#10B981]" : ""
+        }`}
     >
       {children}
     </Link>
@@ -226,9 +225,8 @@ const MobileNavLink: React.FC<MobileNavLinkProps> = ({
     <Link
       to={to}
       onClick={onClick}
-      className={`py-2 transition duration-300 ease-in-out hover:text-[#10B981] ${
-        isActive ? "font-semibold border-b border-[#10B981]" : ""
-      }`}
+      className={`py-2 transition duration-300 ease-in-out hover:text-[#10B981] ${isActive ? "font-semibold border-b border-[#10B981]" : ""
+        }`}
     >
       {children}
     </Link>

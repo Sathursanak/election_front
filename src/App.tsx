@@ -53,7 +53,7 @@ function App() {
                       element={<PartyRegistration />}
                     />
                     <Route
-                      path="/election-process"
+                      path="/ElectionProcess"
                       element={<ElectionProcess />}
                     />
                     <Route path="/about" element={<About />} />

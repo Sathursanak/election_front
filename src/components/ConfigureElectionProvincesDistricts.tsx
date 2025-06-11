@@ -7,7 +7,7 @@ import { dataService } from '../utils/dataService';
 // Removed local interface definitions as they are now imported from ../types
 
 const ConfigureElectionProvincesDistricts: React.FC = () => {
-  const { year } = useElectionData();
+  const { year,se } = useElectionData();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provinces, setProvinces] = useState<IProvince[]>([]); // Use IProvince

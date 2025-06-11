@@ -90,37 +90,6 @@ export const ElectionDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [error, setError] = useState<string | null>(null);
   const [provinces, setProvinces] = useState<string[]>([]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [loadedDistricts, loadedParties, loadedStats, loadedProvinces] = await Promise.all([
-          dataService.getDistricts(),
-          dataService.getParties(),
-          dataService.getElectionStats(),
-          dataService.getProvince()
-        ]);
-
-        setDistricts(Array.isArray(loadedDistricts) ? loadedDistricts : []);
-        setParties(Array.isArray(loadedParties) ? loadedParties : []);
-        setElectionStats(loadedStats || null);
-        setProvinces(loadedProvinces.map(p => p.provinceName));
-        setError(null);
-      } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Failed to load data. Please try again later.');
-        setDistricts([]);
-        setParties([]);
-        setElectionStats(null);
-        setProvinces([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
   const [electionData] = useState(sampleElectionData);
   const [year, setYear] = useState(2025);
   const [selectedDistrictId, setSelectedDistrictId] =
@@ -139,6 +108,45 @@ export const ElectionDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [electionYearData, setElectionYearDataState] = useState<{
     [year: number]: ProvinceConfig[];
   }>({});
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [loadedDistricts, loadedParties, loadedStats, loadedProvinces] = await Promise.all([
+          dataService.getDistricts(),
+          dataService.getParties(year),
+          dataService.getElectionStats(),
+          dataService.getProvince()
+        ]);
+
+        setDistricts(Array.isArray(loadedDistricts) ? loadedDistricts : []);
+        // Map backend party data to frontend Party interface
+        const mappedParties: Party[] = (Array.isArray(loadedParties) ? loadedParties : []).map((p: any) => ({
+          id: p.id.toString(),
+          name: p.partyName,
+          votes: 0, // Assuming votes are not fetched here or can be initialized to 0
+          color: p.partyColor,
+          districtId: "all-districts", // Assuming a default districtId for parties fetched here
+        }));
+        setParties(mappedParties);
+        setElectionStats(loadedStats || null);
+        setProvinces(loadedProvinces.map(p => p.provinceName));
+        setError(null);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Failed to load data. Please try again later.');
+        setDistricts([]);
+        setParties([]);
+        setElectionStats(null);
+        setProvinces([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [year]);
 
   // Update settings and ensure total seats consistency (backend-ready)
   const updateSettings = async (settings: {
@@ -444,6 +452,7 @@ export const ElectionDataProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setElectionYearData,
     districtSeatInputs,
     setDistrictSeatInputs,
+    setDistricts
   };
 
   return (
